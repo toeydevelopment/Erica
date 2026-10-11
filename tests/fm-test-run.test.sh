@@ -109,6 +109,8 @@ init_changed_fixture_repo() {
     fm-secondmate-safety.test.sh \
     fm-session-start.test.sh \
     fm-afk-pi-herdr-return-e2e.test.sh \
+    fm-supervision-host.test.sh \
+    fm-supervision-host-lifecycle.test.sh \
     fm-backend.test.sh \
     fm-pr-merge.test.sh \
     fm-procevent-quota.test.sh \
@@ -125,6 +127,9 @@ init_changed_fixture_repo() {
     chmod +x "$repo/tests/$script"
   done
   : >"$repo/tests/lib.sh"
+  : >"$repo/tests/fm-supervision-host-helpers.sh"
+  printf '# tests/fm-supervision-host-helpers.sh\n' >>"$repo/tests/fm-supervision-host.test.sh"
+  printf '# tests/fm-supervision-host-helpers.sh\n' >>"$repo/tests/fm-supervision-host-lifecycle.test.sh"
   : >"$repo/tests/fm-backend-herdr-eventwait.test.py"
   : >"$repo/bin/fm-supervisor-target-lib.sh"
   : >"$repo/bin/fm-control-lib.sh"
@@ -326,6 +331,13 @@ test_changed_dependency_selection_and_unmapped_failure() {
   assert_contains "$listed" "tests/fm-bearings-snapshot.test.sh" "git-config helper selects snapshot dependents"
   git -C "$repo" add tests/git-config-helpers.sh
   git -C "$repo" -c user.name=test -c user.email=test@example.invalid commit -qm git-config-helper-change
+
+  printf '\n' >>"$repo/tests/fm-supervision-host-helpers.sh"
+  listed=$(cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD)
+  assert_contains "$listed" "tests/fm-supervision-host.test.sh" "shared host helper selects the first host suite"
+  assert_contains "$listed" "tests/fm-supervision-host-lifecycle.test.sh" "shared host helper selects the lifecycle suite"
+  git -C "$repo" add tests/fm-supervision-host-helpers.sh
+  git -C "$repo" -c user.name=test -c user.email=test@example.invalid commit -qm host-helper-change
 
   printf '\n' >>"$repo/tests/fm-backend-herdr-eventwait.test.py"
   listed=$(cd "$repo" && bin/fm-test-run.sh --list --changed --base HEAD)
