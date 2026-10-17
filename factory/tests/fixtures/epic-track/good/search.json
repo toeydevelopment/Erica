@@ -1,0 +1,8 @@
+{"total_count":6,"items":[
+{"number":8,"title":"feat: widget api","state":"closed","html_url":"https://github.com/acme/app/pull/8","body":"Part of #3\nCloses #4\nFlag: widget_v2\n","labels":[{"name":"epic:widget-v2"}],"pull_request":{"merged_at":"2026-10-15T10:00:00Z"}},
+{"number":9,"title":"feat: widget api retry","state":"closed","html_url":"https://github.com/acme/app/pull/9","body":"Part of #3\nCloses #4\n","labels":[],"pull_request":{"merged_at":null}},
+{"number":10,"title":"Widget docs","state":"open","html_url":"https://github.com/acme/app/issues/10","body":"Part of #3\n","labels":[]},
+{"number":11,"title":"chore: widget cleanup","state":"open","html_url":"https://github.com/acme/app/pull/11","body":"Part of #3\nFlag: widget_cleanup\n","labels":[],"pull_request":{"merged_at":null}},
+{"number":12,"title":"Unrelated","state":"open","html_url":"https://github.com/acme/app/issues/12","body":"Part of #30\n","labels":[]},
+{"number":13,"title":"feat: widget ui","state":"open","html_url":"https://github.com/acme/app/pull/13","body":"part of #3\nfixes #5\n","labels":[],"pull_request":{"merged_at":null}}
+]}

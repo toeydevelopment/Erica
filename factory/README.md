@@ -60,5 +60,6 @@ Push the result without `--force`, so every home can keep fast-forwarding from t
 
 ## Epic delivery
 
-`factory/bin/sf-epic-gate.sh` checks an epic pull request before it merges and prints the epic ledger.
+Every ticket ships trunk-based: `factory/bin/sf-trunk-check.sh` checks a pull request or the local branch against the trunk rules.
+An epic is an issue with the `epic` label, and `factory/bin/sf-epic-track.sh` shows its progress on GitHub.
 See [`docs/epic-delivery.md`](docs/epic-delivery.md).
