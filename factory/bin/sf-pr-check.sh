@@ -183,7 +183,7 @@ rule_local_verification() {
   s=$(section "Local Verification")
   printf '%s\n' "$s" | grep -qE '`[^`]+`|^[[:space:]]*(```|~~~)|^[[:space:]]*\$ ' \
     || { DETAIL="no command line (inline code, fenced code or \$ prompt)"; return 1; }
-  printf '%s\n' "$s" | sed -e 's/`[^`]*`//g' \
+  printf '%s\n' "$s" \
     | grep -qiE '(^|[^[:alnum:]_])(pass(ed|es)?|fail(ed|s|ures?)?|ok|errors?)([^[:alnum:]_]|$)|(^|[^[:alnum:]_.-])[0-9]+([^[:alnum:]_.-]|$)' \
     || { DETAIL="no result word (pass, fail, ok, error) or count"; return 1; }
   DETAIL="command and result present"

@@ -97,6 +97,10 @@ printf '%s\n\n## Local Verification\n- `npm run test:e2e`\n' "$(good_body | sed 
 run --body-file "$TMP/nores.md"
 expect "Local Verification without a result fails" 1 "2. FAIL local-verification: no result word"
 
+body codedresult 's/^- `bash factory.*$/- `bash x.test.sh` - `ok: x`/'
+run --body-file "$TMP/codedresult.md"
+expect "result word inside inline code counts" 0 "2. PASS local-verification"
+
 body nodoor 's/^\*\*Door:\*\* two-way/**Door:** maybe/'
 run --body-file "$TMP/nodoor.md"
 expect "bad door fails" 1 "3. FAIL merge-danger: missing **Door:**"
