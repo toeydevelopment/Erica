@@ -28,6 +28,7 @@ factory/
   bin/sf-runner-sample.sh    read-only runner health sampler (custom check)
   bin/sf-board-sync.sh       project task state onto GitHub Project boards
   bin/sf-hooks-install.sh    merge the guard hook into a settings.json (dry run by default)
+  bin/sf-dashboard.sh        local org-chart dashboard of the fleet (dashboard/), see docs/dashboard.md
   hooks/sf-guard.sh          PreToolUse guard hook, see docs/hooks.md
   brief-include.md           shared standing rules for every worker
   config-templates/          example config files (boards.json)
