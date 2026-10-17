@@ -1,0 +1,28 @@
+name: SF Trunk Check
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+  pull-requests: read
+  actions: read
+
+concurrency:
+  group: sf-trunk-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  trunk:
+    name: Trunk rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: factory/bin/sf-trunk-check.sh "$GITHUB_REPOSITORY" "$PR_NUMBER"

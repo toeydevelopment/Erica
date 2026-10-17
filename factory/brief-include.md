@@ -109,6 +109,15 @@ These answers are already given, so respond through the gate right away instead 
 
 Still stop for your lead on anything that widens scope, changes product behaviour beyond the instructions, or is destructive.
 
+## Trunk-based delivery
+
+- Branch from the default branch and target it; never an `epic/*`, `release/*` or other long-lived branch.
+- Keep the pull request under the configured size (default 400 added lines and 20 files, test fixtures and lock files excluded).
+- Open the pull request within 48 hours of your first commit.
+- When the task belongs to an epic, put `Part of #<epic issue>` in the pull request body.
+- Hide unfinished behavior behind a feature flag and name it on a `Flag: <name>` line in the pull request body.
+- Run `factory/bin/sf-trunk-check.sh --local` before reporting ready.
+
 ## Shared host: never kill by name
 
 Never run `pkill`, `killall` or similar by process name.
