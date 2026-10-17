@@ -31,7 +31,8 @@
 #   3. merge-danger        `## Merge Danger` has **Door:** one-way, two-way or mixed and
 #                          **Blast Radius:**; SKIP when a repository template omits the section
 #   4. ui-evidence         a changed file matching ui_globs needs an embedded image
-#   5. no-placeholders     no <angle placeholder>, TODO or TBD outside code
+#   5. no-placeholders     no <angle placeholder> (text with a space or ..., or any <token>
+#                          the template uses), TODO or TBD outside code
 #   6. title               Conventional Commits: type(scope)!: subject, scope optional
 #   7. no-address          no "captain" and no greeting line (hi, hello, hey, dear, ahoy)
 #
@@ -223,10 +224,19 @@ rule_ui_evidence() {
   DETAIL="UI file $ui changed and an image is embedded"
 }
 
-# A placeholder is <text> with a space or ellipsis and no attribute; tags such as <img src=..> pass.
+# A placeholder is <text> with a space or ellipsis and no attribute, or any <token> the
+# template itself uses; tags such as <img src=..> pass.
 rule_no_placeholders() {
-  local hit
+  local hit tpl t
   hit=$(printf '%s\n' "$NOCODE" | grep -oE '<[^<>=/!][^<>=]*( |\.\.\.)[^<>=]*>|<\.\.\.>|(^|[^[:alnum:]_])(TODO|TBD)([^[:alnum:]_]|$)' | head -n 3 | paste -sd ' ' -) || true
+  if [ -z "$hit" ] && [ "$HAS_TEMPLATE" -eq 1 ]; then
+    tpl=$(printf '%s\n' "$TEMPLATE" | strip_fences | perl -0pe 's/<!--.*?-->//gs' | grep -oE '<[^<>=/!][^<>=]*>' | sort -u) || true
+    while IFS= read -r t; do
+      [ -n "$t" ] || continue
+      printf '%s\n' "$NOCODE" | grep -qF -- "$t" && hit="$hit $t"
+    done <<<"$tpl"
+    hit=${hit# }
+  fi
   [ -z "$hit" ] || { DETAIL="found: $hit"; return 1; }
   DETAIL="none found"
 }

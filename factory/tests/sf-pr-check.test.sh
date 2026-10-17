@@ -169,6 +169,11 @@ printf '\n![page](https://example.com/page.png)\n' >> "$TMP/tpl.md"
 CODE=$(head -n 1 "$TMP/tpl.out"); OUT=$(tail -n +2 "$TMP/tpl.out")
 expect "embedded image satisfies UI evidence" 0 "4. PASS ui-evidence"
 
+printf '\n<why>\n' >> "$TMP/tpl.md"
+(cd "$REPO" && run --body-file "$TMP/tpl.md" && printf '%s\n%s' "$CODE" "$OUT") > "$TMP/tpl.out"
+CODE=$(head -n 1 "$TMP/tpl.out"); OUT=$(tail -n +2 "$TMP/tpl.out")
+expect "template placeholder left in the body fails" 1 "5. FAIL no-placeholders: found: <why>"
+
 # Pull request mode against the fake GitHub client.
 FX="$TMP/fx"
 mkdir -p "$FX"
