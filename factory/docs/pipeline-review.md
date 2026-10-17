@@ -15,7 +15,7 @@ Prose stays only for judgment a script cannot make.
 ## 1. Pull request rules: now enforced by `sf-pr-check`
 
 `factory/bin/sf-pr-check.sh` checks a pull request, or a local body with `--body-file`, and the `sf-pr-check` workflow runs it on every pull request to `main`.
-Running it against the fork's own merged factory pull requests shows the gap it closes: #8 and #9 used `### Local Verification` instead of `## Local Verification`, and #5 quoted the forbidden address word.
+Running it against the fork's own merged factory pull requests shows the gap it closes: https://github.com/toeydevelopment/Erica/pull/8 and https://github.com/toeydevelopment/Erica/pull/9 used `### Local Verification` instead of `## Local Verification`, and https://github.com/toeydevelopment/Erica/pull/5 quoted the forbidden address word.
 Each passed review because no check existed.
 
 Rules from `factory/brief-include.md` that the check now enforces:
@@ -49,7 +49,7 @@ Once that line lands, lines 44-58 can shrink to the template block alone, becaus
 ## 2. The guard hook is opt-in
 
 `factory/hooks/sf-guard.sh` blocks secret reads, literal secret writes and `rm` outside the project root.
-It runs only where someone ran `factory/bin/sf-hooks-install.sh --apply` on a settings file (`factory/docs/hooks.md`, "Install").
+It runs only where someone ran `factory/bin/sf-hooks-install.sh --apply` on a settings file: `factory/docs/hooks.md` line 33 says "The installer never runs on its own and touches only the file you name".
 Nothing in `factory/bin/sf-install.sh` or the spawn path installs it, so a new home or project runs unguarded and nobody is told.
 Proposal: `sf-install.sh` prints `FAIL guard hook not installed in <settings>` for each project in the registry whose `.claude/settings.json` lacks the hook, and a test pins that.
 Cost: about 20 lines and one test. Recommendation: do now.
@@ -77,20 +77,20 @@ Proposals:
 ## 5. Default delivery path for this fork
 
 The fork inherits `.github/workflows/no-mistakes-required.yml`, which checks that a pull request to `main` was raised by no-mistakes and exempts only the upstream author.
-No check of that name appears on the fork's merged pull requests (for example #9), so this fork ships direct-PR in practice.
+That workflow is `disabled_manually` on this fork (`gh api repos/toeydevelopment/erica/actions/workflows`), and no such check ran on https://github.com/toeydevelopment/Erica/pull/9 or https://github.com/toeydevelopment/Erica/pull/10, so this fork ships direct-PR in practice.
 The factory overlay is shell scripts with plain-bash tests and a ten-second overlay workflow (`sf-overlay-check.yml`); the full upstream CI also runs on each pull request.
 For changes limited to the overlay, the review step of no-mistakes adds minutes per round and its document step can rewrite files outside the add-only allowlist (`brief-include.md` lines 92-98 exist to undo that).
 Recommendation: keep direct-PR as the default for overlay-only work now that `sf-pr-check` and `sf-overlay-check` gate the body and layout; use no-mistakes for work that changes behaviour other homes run, such as hooks wired into spawns.
 
 ## 6. Trunk-based delivery
 
-A separate task adds `factory/bin/sf-trunk-check.sh`; this review does not build or describe its rules.
+No prose rule covers branch shape today: `brief-include.md` says nothing about branch age, size or base. A separate task adds `factory/bin/sf-trunk-check.sh`; this review does not build or describe its rules.
 The two checks compose: `sf-trunk-check` judges the branch and `sf-pr-check` judges the description, and both run as required workflows.
 Recommendation: once both exist, make both required status checks in branch protection (`factory/docs/fork-remotes.md` already covers that setup).
 
 ## 7. What the fleet dashboard still lacks
 
-The dashboard task is not on any branch of this fork yet (`git branch -r` lists no dashboard branch), so this compares against what it would read: `bin/fm-fleet-snapshot.sh` schema `fm-fleet-snapshot.v1`.
+No prose rule covers overall progress today; the brief only asks workers for sparse status lines (`bin/fm-brief.sh` line 779, "Each append wakes firstmate, so report sparingly"). The dashboard task is not on any branch of this fork yet (`git branch -r` lists none), so this compares against what it would read: `bin/fm-fleet-snapshot.sh` schema `fm-fleet-snapshot.v1`.
 That snapshot carries backlog rows, per-task current state, open decisions and secondmate summaries.
 For overall progress it has no field for:
 
