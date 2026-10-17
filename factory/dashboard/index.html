@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fleet Dashboard</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --ink: #1d232b; --muted: #5f6b7a;
+  --line: #c9d0d9; --line-hot: #4263eb; --card-border: #dde2e8;
+  --shadow: 0 1px 3px rgba(20, 30, 45, .12);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12161c; --panel: #1b2129; --ink: #e6eaf0; --muted: #96a2b2;
+    --line: #3a4552; --line-hot: #7c95ff; --card-border: #2b3440;
+    --shadow: 0 1px 3px rgba(0, 0, 0, .5);
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  display: flex; flex-direction: column; min-height: 100vh;
+}
+header { padding: 12px 16px 8px; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+h1 { font-size: 17px; margin: 0; font-weight: 650; }
+#counts { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px;
+  background: var(--panel); border: 1px solid var(--card-border); font-size: 12px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+#generated { color: var(--muted); font-size: 12px; margin-left: auto; }
+#banner { display: none; margin: 0 16px 8px; padding: 8px 12px; border-radius: 6px;
+  background: #c92a2a; color: #fff; font-weight: 600; }
+#banner.on { display: block; }
+#stage { flex: 1; overflow: auto; padding: 8px 16px 16px; }
+#sizer { margin: 0 auto; position: relative; }
+#canvas { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+#wires { position: absolute; left: 0; top: 0; overflow: visible; }
+#wires path.wire { fill: none; stroke: var(--line); stroke-width: 2; transition: d .5s ease, stroke .3s; }
+#wires path.wire.hot { stroke: var(--line-hot); stroke-width: 3; }
+#wires .msg circle { stroke: var(--panel); stroke-width: 2; }
+#wires .msg text { font-size: 11px; font-weight: 600; fill: var(--ink); paint-order: stroke;
+  stroke: var(--bg); stroke-width: 3px; }
+.card { position: absolute; width: 220px; height: 132px; padding: 9px 10px; border-radius: 10px;
+  background: var(--panel); border: 1px solid var(--card-border); border-top: 4px solid var(--state);
+  box-shadow: var(--shadow); overflow: hidden;
+  transition: left .5s ease, top .5s ease, opacity .4s ease, transform .4s ease, border-color .4s; }
+.card.enter, .card.leave { opacity: 0; transform: scale(.9); }
+.card.flash { animation: flash 1s ease; }
+.card.busy { animation: pulse 2.4s ease-in-out infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--state) 22%, transparent); } }
+@keyframes flash { 30% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--state) 45%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .card.busy, .card.flash { animation: none; } }
+.row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.icon { width: 18px; height: 18px; flex: none; color: var(--muted); }
+.label { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.badge { flex: none; font-size: 11px; font-weight: 650; padding: 1px 7px; border-radius: 999px; color: #fff;
+  background: var(--state); transition: background .4s; }
+.meta { color: var(--muted); font-size: 12px; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.title, .current { margin-top: 3px; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.title { font-size: 13px; }
+.current { color: var(--muted); font-size: 12px; -webkit-line-clamp: 1; }
+.pr { font-size: 12px; display: block; margin-top: 2px; color: var(--line-hot); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+footer { border-top: 1px solid var(--card-border); background: var(--panel); padding: 8px 16px; max-height: 30vh; overflow: auto; }
+footer h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 4px; }
+#history { list-style: none; margin: 0; padding: 0; font-size: 12px; }
+#history li { display: flex; gap: 8px; padding: 2px 0; min-width: 0; animation: slide .4s ease; }
+#history .k { flex: none; width: 70px; font-weight: 650; }
+#history .fromto { flex: none; color: var(--muted); }
+#history .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+@keyframes slide { from { opacity: 0; transform: translateY(-4px); } }
+@media (max-width: 600px) { #history .fromto { display: none; } #generated { margin-left: 0; } }
+</style>
+</head>
+<body data-animated="0">
+<header>
+  <h1>Fleet</h1>
+  <div id="counts"></div>
+  <div id="generated"></div>
+</header>
+<div id="banner" role="alert"></div>
+<main id="stage"><div id="sizer"><div id="canvas"><svg id="wires"></svg></div></div></main>
+<footer><h2>Recent messages</h2><ul id="history"></ul></footer>
+<script>
+"use strict";
+// One color per state; the docs table copies this.
+const STATE_COLORS = {
+  working: "#2f9e44", parked: "#868e96", done: "#1c7ed6", blocked: "#e03131",
+  paused: "#f08c00", failed: "#a61e4d", unknown: "#7d8793",
+};
+const EDGE_COLORS = {
+  dispatch: "#4263eb", steer: "#ae3ec9", status: "#2f9e44",
+  pr_ready: "#f08c00", merged: "#1c7ed6", cleaned_up: "#868e96",
+};
+const ICONS = {
+  firstmate: "M12 2v4M12 6a3 3 0 1 0 0 .01M12 9v13M5 15a7 7 0 0 0 14 0M8 12h8",
+  secondmate: "M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M15.5 8.5l-2 5-5 2 2-5z",
+  ship: "M3 17h18l-3 4H6zM12 3v12M12 4l6 10h-6",
+  scout: "M10 10a6 6 0 1 0 0 .01M14.5 14.5L21 21",
+};
+const W = 220, H = 132, GX = 24, GY = 64, POLL_MS = 3000, FLIGHT_MS = 900, HISTORY = 20;
+const NS = "http://www.w3.org/2000/svg";
+const $ = (id) => document.getElementById(id);
+
+let nodes = new Map();   // id -> node (latest graph)
+const cards = new Map(); // id -> card element
+const wires = new Map(); // child id -> wire path
+let pos = new Map();     // id -> {x, y}
+let lastSeq = null;
+const queue = [];
+let flying = false;
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+// Tidy tree: each leaf takes one column, a parent centers over its children.
+function layout(list) {
+  const kids = new Map();
+  for (const n of list) {
+    if (n.parent && nodes.has(n.parent)) {
+      if (!kids.has(n.parent)) kids.set(n.parent, []);
+      kids.get(n.parent).push(n.id);
+    }
+  }
+  const out = new Map();
+  let col = 0, depthMax = 0;
+  function place(id, depth) {
+    depthMax = Math.max(depthMax, depth);
+    const c = kids.get(id) || [];
+    let x;
+    if (!c.length) x = col++;
+    else { const xs = c.map((k) => place(k, depth + 1)); x = (xs[0] + xs[xs.length - 1]) / 2; }
+    out.set(id, { x: x * (W + GX), y: depth * (H + GY) });
+    return x;
+  }
+  for (const n of list) if (!n.parent || !nodes.has(n.parent)) place(n.id, 0);
+  return { pos: out, width: Math.max(1, col) * (W + GX) - GX, height: (depthMax + 1) * (H + GY) - GY };
+}
+
+function icon(kind) {
+  const s = document.createElementNS(NS, "svg");
+  s.setAttribute("viewBox", "0 0 24 24");
+  s.setAttribute("class", "icon");
+  const p = document.createElementNS(NS, "path");
+  p.setAttribute("d", ICONS[kind] || ICONS.ship);
+  p.setAttribute("fill", "none");
+  p.setAttribute("stroke", "currentColor");
+  p.setAttribute("stroke-width", "2");
+  p.setAttribute("stroke-linecap", "round");
+  p.setAttribute("stroke-linejoin", "round");
+  s.appendChild(p);
+  return s;
+}
+
+function fill(card, n) {
+  card.replaceChildren();
+  card.style.setProperty("--state", STATE_COLORS[n.state] || STATE_COLORS.unknown);
+  card.classList.toggle("busy", !!n.busy);
+  const head = el("div", "row");
+  head.append(icon(n.kind), el("span", "label", n.label), el("span", "badge", n.state));
+  card.appendChild(head);
+  const meta = [n.kind, n.project, n.branch].filter(Boolean).join(" · ");
+  card.appendChild(el("div", "meta", meta));
+  if (n.task_title) card.appendChild(el("div", "title", n.task_title));
+  if (n.current) card.appendChild(el("div", "current", n.current));
+  if (n.pr && /^https:\/\//.test(n.pr)) {
+    const a = el("a", "pr", n.pr.replace(/^https:\/\/(www\.)?/, ""));
+    a.href = n.pr; a.target = "_blank"; a.rel = "noopener noreferrer";
+    card.appendChild(a);
+  }
+  card.title = [n.label, n.state, n.task_title, n.current].filter(Boolean).join("\n");
+}
+
+function wirePath(parent, child) {
+  const a = pos.get(parent), b = pos.get(child);
+  const x1 = a.x + W / 2, y1 = a.y + H, x2 = b.x + W / 2, y2 = b.y, my = (y1 + y2) / 2;
+  return `M ${x1} ${y1} C ${x1} ${my} ${x2} ${my} ${x2} ${y2}`;
+}
+
+function render(graph) {
+  const prev = nodes;
+  nodes = new Map(graph.nodes.map((n) => [n.id, n]));
+  const L = layout(graph.nodes);
+  pos = L.pos;
+  const canvas = $("canvas"), svg = $("wires");
+  canvas.style.width = L.width + "px";
+  canvas.style.height = L.height + "px";
+  svg.setAttribute("width", L.width);
+  svg.setAttribute("height", L.height);
+  fit(L.width, L.height);
+
+  for (const n of graph.nodes) {
+    const p = pos.get(n.id);
+    let card = cards.get(n.id);
+    if (!card) {
+      card = el("div", "card enter");
+      card.dataset.id = n.id;
+      canvas.appendChild(card);
+      cards.set(n.id, card);
+      requestAnimationFrame(() => requestAnimationFrame(() => card.classList.remove("enter")));
+    } else if (prev.get(n.id) && prev.get(n.id).state !== n.state) {
+      card.classList.remove("flash");
+      void card.offsetWidth;
+      card.classList.add("flash");
+    }
+    card.style.left = p.x + "px";
+    card.style.top = p.y + "px";
+    fill(card, n);
+    if (n.parent && nodes.has(n.parent)) {
+      let w = wires.get(n.id);
+      if (!w) {
+        w = document.createElementNS(NS, "path");
+        w.setAttribute("class", "wire");
+        svg.insertBefore(w, svg.firstChild);
+        wires.set(n.id, w);
+      }
+      w.setAttribute("d", wirePath(n.parent, n.id));
+    }
+  }
+  for (const [id, card] of cards) {
+    if (nodes.has(id)) continue;
+    cards.delete(id);
+    card.classList.add("leave");
+    setTimeout(() => card.remove(), 450);
+  }
+  for (const [id, w] of wires) {
+    const n = nodes.get(id);
+    if (n && n.parent && nodes.has(n.parent)) continue;
+    wires.delete(id);
+    w.remove();
+  }
+  header(graph);
+}
+
+function fit(w, h) {
+  const avail = $("stage").clientWidth - 32;
+  // Never shrink below 0.6 so phone-width cards stay readable; the stage scrolls instead.
+  const s = Math.max(0.6, Math.min(1, avail / w));
+  $("canvas").style.transform = `scale(${s})`;
+  $("sizer").style.width = w * s + "px";
+  $("sizer").style.height = h * s + "px";
+}
+
+function header(graph) {
+  const counts = {};
+  for (const n of graph.nodes) counts[n.state] = (counts[n.state] || 0) + 1;
+  const box = $("counts");
+  box.replaceChildren();
+  for (const s of Object.keys(STATE_COLORS)) {
+    if (!counts[s]) continue;
+    const chip = el("span", "chip");
+    const d = el("span", "dot");
+    d.style.background = STATE_COLORS[s];
+    chip.append(d, document.createTextNode(`${s} ${counts[s]}`));
+    box.appendChild(chip);
+  }
+  $("generated").textContent = "generated " + new Date(graph.generated).toLocaleString();
+  const problems = [...(graph.errors || [])];
+  if (!graph.ledger || !graph.ledger.enabled) {
+    problems.unshift("Fleet activity ledger is off: create config/fleet-ledger in this home to see message flow.");
+  }
+  banner(problems.join(" "));
+}
+
+function banner(text) {
+  $("banner").textContent = text;
+  $("banner").classList.toggle("on", !!text);
+}
+
+function addHistory(e) {
+  const li = el("li");
+  const k = el("span", "k", e.kind);
+  k.style.color = EDGE_COLORS[e.kind] || "inherit";
+  const when = e.ts ? new Date(e.ts * 1000).toLocaleTimeString() + " " : "";
+  li.append(k, el("span", "fromto", `${when}${e.from} → ${e.to}`), el("span", "t", e.text || ""));
+  li.title = e.text || "";
+  const list = $("history");
+  list.insertBefore(li, list.firstChild);
+  while (list.children.length > HISTORY) list.lastChild.remove();
+}
+
+function enqueue(edges) {
+  for (const e of edges) {
+    if (lastSeq != null && e.seq <= lastSeq) continue;
+    queue.push(e);
+    lastSeq = e.seq;
+  }
+  if (!flying) next();
+}
+
+function next() {
+  const e = queue.shift();
+  if (!e) { flying = false; return; }
+  flying = true;
+  addHistory(e);
+  fly(e, () => {
+    document.body.dataset.animated = String(Number(document.body.dataset.animated) + 1);
+    next();
+  });
+}
+
+// A message dot runs along the tree wire in the message's direction.
+function fly(e, done) {
+  const svg = $("wires");
+  let path = null, reverse = false, temp = null;
+  const from = nodes.get(e.from), to = nodes.get(e.to);
+  if (!from || !to || !pos.has(e.from) || !pos.has(e.to)) { setTimeout(done, 120); return; }
+  if (to.parent === e.from) path = wires.get(e.to);
+  else if (from.parent === e.to) { path = wires.get(e.from); reverse = true; }
+  if (!path) {
+    temp = document.createElementNS(NS, "path");
+    const a = pos.get(e.from), b = pos.get(e.to);
+    temp.setAttribute("d", `M ${a.x + W / 2} ${a.y + H / 2} L ${b.x + W / 2} ${b.y + H / 2}`);
+    temp.setAttribute("class", "wire");
+    svg.appendChild(temp);
+    path = temp;
+  }
+  path.classList.add("hot");
+  const g = document.createElementNS(NS, "g");
+  g.setAttribute("class", "msg");
+  const c = document.createElementNS(NS, "circle");
+  c.setAttribute("r", "7");
+  c.setAttribute("fill", EDGE_COLORS[e.kind] || "#888");
+  const t = document.createElementNS(NS, "text");
+  t.setAttribute("x", "11");
+  t.setAttribute("y", "4");
+  t.textContent = e.kind.replace("_", " ");
+  g.append(c, t);
+  svg.appendChild(g);
+  const len = path.getTotalLength();
+  const start = performance.now();
+  function step(now) {
+    const k = Math.min(1, (now - start) / FLIGHT_MS);
+    const eased = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    const p = path.getPointAtLength(len * (reverse ? 1 - eased : eased));
+    g.setAttribute("transform", `translate(${p.x} ${p.y})`);
+    if (k < 1) { requestAnimationFrame(step); return; }
+    g.remove();
+    path.classList.remove("hot");
+    if (temp) temp.remove();
+    done();
+  }
+  requestAnimationFrame(step);
+}
+
+async function getJSON(url) {
+  const r = await fetch(url, { cache: "no-store" });
+  if (!r.ok) throw new Error(`${url} returned HTTP ${r.status}`);
+  return r.json();
+}
+
+async function poll() {
+  try {
+    const graph = await getJSON("/api/fleet");
+    render(graph);
+    const maxSeq = graph.edges.length ? graph.edges[graph.edges.length - 1].seq : 0;
+    if (lastSeq == null) {
+      // First load replays the recent flow once, the same window the history strip keeps.
+      lastSeq = Math.max(0, maxSeq - HISTORY);
+      enqueue(graph.edges);
+    } else {
+      if (maxSeq < lastSeq) lastSeq = maxSeq; // the ledger was truncated
+      enqueue((await getJSON(`/api/events?after=${lastSeq}`)).edges);
+    }
+  } catch (err) {
+    banner(`Cannot load the fleet: ${err.message}`);
+  }
+  setTimeout(poll, POLL_MS);
+}
+
+addEventListener("resize", () => {
+  const c = $("canvas");
+  fit(parseFloat(c.style.width) || 1, parseFloat(c.style.height) || 1);
+});
+poll();
+</script>
+</body>
+</html>
