@@ -1,7 +1,7 @@
 """Local fleet dashboard server: python3 server.py [--port N] [--fixture DIR] [--once].
 
 Serves index.html at /, the graph at GET /api/fleet, and edges after a seq at
-GET /api/events?after=<seq>. Binds 127.0.0.1 only. --once prints the graph JSON
+GET /api/events?after=<seq>[&node=<id>][&limit=N]. Binds 127.0.0.1 only. --once prints the graph JSON
 and exits. --port 0 picks a free port; the bound URL is printed on stdout.
 """
 
@@ -45,7 +45,17 @@ def make_handler(source):
                 except ValueError:
                     self._send(400, "after must be an integer\n", "text/plain")
                     return
-                self._json({"schema": model.SCHEMA, "after": after, "edges": source.events(after)})
+                edges = source.events(after)
+                node = q.get("node", [None])[0]
+                if node:
+                    edges = [e for e in edges if node in (e["from"], e["to"])]
+                try:
+                    limit = int(q.get("limit", ["0"])[0])
+                except ValueError:
+                    limit = 0
+                if limit > 0:
+                    edges = edges[-limit:]
+                self._json({"schema": model.SCHEMA, "after": after, "edges": edges})
             else:
                 self._send(404, "not found\n", "text/plain")
 

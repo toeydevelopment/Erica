@@ -439,7 +439,7 @@ class Source:
         with self._lock:
             snapshot, at, error = self.snapshot, self.snapshot_at, self.snapshot_error
         g = build(snapshot, self.state_dir, self.config_dir, self.label, base=self.base, edge_limit=edge_limit, dirs=self.dirs)
-        g["snapshot"] = {"age": int(time.time() - at) if at else None, "error": error}
+        g["snapshot"] = {"age": int(time.time() - at) if at else None, "error": error, "live": not self.fixture}
         if error:
             g["errors"].append(error + ("; showing the last good snapshot" if snapshot else "; states come from status lines"))
         return g

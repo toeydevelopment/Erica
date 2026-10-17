@@ -121,9 +121,14 @@ import json, sys
 e = json.load(sys.stdin)["edges"]
 assert [(x["seq"], x["kind"]) for x in e] == [(9, "steer"), (10, "merged"), (11, "status"), (12, "steer"), (13, "status")], e
 ' || fail "GET /api/events?after=8"
+curl -fsS "${URL}api/events?after=0&node=ship-login&limit=2" | python3 -c '
+import json, sys
+e = json.load(sys.stdin)["edges"]
+assert [(x["seq"], x["kind"]) for x in e] == [(8, "pr_ready"), (10, "merged")], e
+' || fail "GET /api/events for one node with a limit"
 code=$(curl -s -o /dev/null -w '%{http_code}' "${URL}api/events?after=x")
 [ "$code" = 400 ] || fail "bad after returned $code"
-pass "server: page, fleet, events after a seq, bad after is 400"
+pass "server: page, fleet, events after a seq or for one node, bad after is 400"
 
 (cd "$TMP/home" && find . -type f -exec cksum {} + | sort) > "$TMP/after"
 cmp -s "$TMP/before" "$TMP/after" || fail "serving changed the home: $(diff "$TMP/before" "$TMP/after")"

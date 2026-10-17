@@ -1,11 +1,23 @@
 # Fleet dashboard
 
-The dashboard is a local web page that draws the fleet as an org chart.
-The firstmate is on top, its second mates are in the row below, and every ship and scout sits under the mate that runs it.
-Each card shows the mate's state, project, branch, task title, latest status text, and PR link.
-Messages between mates move along the lines as colored dots, so you can watch work being dispatched, steered, reported and merged.
+The dashboard is a local web page that draws the fleet as an org chart that fits one screen.
+The firstmate sits on top with a count of every worker by state.
+Below it, each second mate is a card, and the firstmate's own ships and scouts share a "Direct crew" card.
+Cards that need a look (blocked, then working) come first and glide to their new place when states change.
+Messages between mates fly as colored dots from card to card, so you can watch work being dispatched, steered, reported and merged.
 
-![Dashboard on the fixture home, with a steer message in flight](dashboard.png)
+![Dashboard on the fixture home, every card expanded](dashboard.png)
+
+## Use it
+
+- **Fit** (the default) collapses every card to a row of worker dots so the whole fleet fits one screen; turn it off for roomier cards.
+- **Expand** a card with its arrow, or use Expand and Collapse for all cards, to list its workers with task, latest status and age.
+- **Click** a card, a worker dot or a worker row to open its details: role, lead, project, branch, PR, task, latest status and its last 60 messages.
+- **Filter** with the search box (mates, tasks, projects, status text), the project menu, the state chips or the counts on the firstmate card, and Hide finished; cards with matches open on their own.
+- **Activity** lists messages as they arrive, filterable by kind; with a mate selected it shows only that mate's messages. Click one to open its mate.
+- The page follows the system light or dark theme; the moon button cycles auto, dark and light.
+- Keys: `/` search, `f` fit, `e` expand all, `c` collapse all, `h` hide finished, `a` activity, `Esc` close.
+- View choices are remembered in this browser. On a phone the cards stack in one or two columns and Activity opens as a bottom sheet.
 
 ## Open it
 
@@ -50,6 +62,7 @@ The firstmate has no state of its own in the snapshot, so it shows working while
 Message dots and the history strip use one color per message kind: dispatch indigo, steer purple, status green, PR ready orange, merged blue, cleaned up grey.
 Dispatch, steer, merged and cleaned up travel from the lead (the firstmate or a second mate) down to the worker.
 Status and PR ready travel up from the worker to its lead.
+A dot starts and ends at the worker's row when its card is open, at its dot when collapsed, and at the card's header otherwise.
 
 ## Where the data comes from
 
@@ -65,8 +78,8 @@ Status and PR ready travel up from the worker to its lead.
 - `state/<id>.meta` fills in kind, project, branch and PR when the snapshot lacks them; a second mate's project comes from its `projects=`.
 
 The page polls every 3 seconds.
-Each new message animates once, in order, and the strip at the bottom lists the last 20.
-On first load the page replays those last 20 so you see recent flow right away.
+Each new message animates once, up to four at a time; a burst of more than 24 goes straight to the Activity list.
+On first load the page fills Activity with the newest 200 messages and replays the last 6.
 Message numbers are positions in time order, not stored ids, and a truncated ledger restarts them.
 
 The dashboard reads only.
