@@ -589,6 +589,10 @@
       "audience": "operator-current"
     },
     {
+      "path": "factory/docs/pipeline-review.md",
+      "audience": "operator-current"
+    },
+    {
       "path": "factory/docs/review-base.md",
       "audience": "operator-current"
     },
