@@ -90,12 +90,12 @@ Recommendation: once both exist, make both required status checks in branch prot
 
 ## 7. What the fleet dashboard still lacks
 
-No prose rule covers overall progress today; the brief only asks workers for sparse status lines (`bin/fm-brief.sh` line 779, "Each append wakes firstmate, so report sparingly"). The dashboard task is not on any branch of this fork yet (`git branch -r` lists none), so this compares against what it would read: `bin/fm-fleet-snapshot.sh` schema `fm-fleet-snapshot.v1`.
-That snapshot carries backlog rows, per-task current state, open decisions and secondmate summaries.
-For overall progress it has no field for:
+No prose rule covers overall progress today; the brief only asks workers for sparse status lines (`bin/fm-brief.sh` line 779, "Each append wakes firstmate, so report sparingly").
+The dashboard has landed as `factory/bin/sf-dashboard.sh` (`factory/docs/dashboard.md`): an org chart whose cards show state, project, branch, task title, latest status text and PR link, with message flow from the fleet ledger.
+That answers "who is doing what right now", but not overall progress. It has no field for:
 
-- Pull request check state per task (CI green, red or pending, and the `sf-pr-check` result). Today that needs a separate `gh` read per PR.
-- Epic roll-up: done and total child tickets per epic. `factory/bin/sf-epic-gate.sh --ledger` already prints this per epic and could feed it.
+- Pull request check state per card (CI green, red or pending, and the `sf-pr-check` result). The card links the PR, but reading its checks needs a separate `gh` read per PR.
+- Epic roll-up: merged and total child tickets per epic. `factory/bin/sf-epic-track.sh` already prints `progress: merged X/N` per epic and could feed it.
 - Time per stage: dispatch, first PR, merge. Status lines carry `[at=]` stamps, so this is derivable once stamps are reliable (section 3).
 
 Recommendation: later; add the PR check column first, because it answers "what is blocked on red CI" without opening each PR.
