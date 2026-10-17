@@ -27,7 +27,7 @@ The page needs no network and loads no outside files.
 
 Message flow comes from the fleet activity ledger described in [`docs/fleet-ledger.md`](../../docs/fleet-ledger.md).
 Turn it on by creating the empty file `config/fleet-ledger` in the home.
-While it is off, the page shows a red banner and draws mates without messages.
+While it is off, the page shows a banner and builds message flow from each task's `state/<id>.status` lines, so only status messages and steers move.
 Steer messages come from each task's steering inbox, so they show up either way.
 
 ## What the colors mean
@@ -48,16 +48,21 @@ The states are the ones `bin/fm-crew-state.sh` prints.
 The firstmate has no state of its own in the snapshot, so it shows working while any mate under it is working, and parked otherwise.
 
 Message dots and the history strip use one color per message kind: dispatch indigo, steer purple, status green, PR ready orange, merged blue, cleaned up grey.
-Dispatch, steer, merged and cleaned up travel from the firstmate down to the worker.
-Status and PR ready travel up from the worker to the firstmate.
+Dispatch, steer, merged and cleaned up travel from the lead (the firstmate or a second mate) down to the worker.
+Status and PR ready travel up from the worker to its lead.
 
 ## Where the data comes from
 
 - Mates, tasks and second mates come from `bin/fm-fleet-snapshot.sh --json`.
-- Workers under a second mate come from that second mate's summary in the snapshot.
-  Their messages live in the second mate's own ledger, so they show no moving dots here.
+  The server runs it in one background thread every 30 seconds, never more than one at a time, and kills its whole process group after 300 seconds.
+  Requests never wait for it: they use the last good snapshot, and the header shows its age.
+  Until the first snapshot arrives, or when it fails, each mate's state comes from the newest line of its `state/<id>.status`.
+- Workers under a second mate come from that second mate's own home (`home=` in its meta): its `state/<id>.meta`, `state/<id>.status` and `data/backlog.md`.
+  Their messages come from that home's ledger when it is on, otherwise from its status lines, plus its steering inboxes, and they move between the worker and the second mate.
+  A second mate whose home is not on this machine falls back to its summary in the snapshot, without messages.
 - Messages come from `state/fleet-ledger.jsonl` and from `state/<id>.inbox/`, both handled and unhandled.
-- `state/<id>.meta` fills in kind, project, branch and PR when the snapshot lacks them.
+  `/api/fleet` carries only the newest 200; `/api/events?after=<seq>` returns the rest.
+- `state/<id>.meta` fills in kind, project, branch and PR when the snapshot lacks them; a second mate's project comes from its `projects=`.
 
 The page polls every 3 seconds.
 Each new message animates once, in order, and the strip at the bottom lists the last 20.
@@ -74,10 +79,11 @@ It never writes under `state/` or `data/`.
 
 - `<dir>/fleet-snapshot.json`: a saved `fm-fleet-snapshot.sh --json` output;
 - `<dir>/recorded-state/`: files laid out like `state/`;
-- `<dir>/recorded-config/`: files laid out like `config/`.
+- `<dir>/recorded-config/`: files laid out like `config/`;
+- a second mate's relative `home=` resolves under `<dir>`, with the same `recorded-state/` and `recorded-data/` names inside.
 
 The folders are not named `state/` and `config/` because the repository ignores those names everywhere.
-`factory/tests/fixtures/dashboard/` is the demo: a firstmate, one second mate, two ships and a scout in mixed states, with a full dispatch, steer, status, PR ready and merged sequence.
+`factory/tests/fixtures/dashboard/` is the demo: a firstmate, two second mates (one with its home recorded), three ships and a scout in mixed states, with a full dispatch, steer, status, PR ready and merged sequence.
 
 ```sh
 factory/bin/sf-dashboard.sh --fixture factory/tests/fixtures/dashboard

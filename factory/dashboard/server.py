@@ -65,7 +65,7 @@ def main():
     a = p.parse_args()
     source = model.Source(a.fm_root, a.fm_home, a.fixture)
     if a.once:
-        json.dump(source.graph(), sys.stdout, indent=1)
+        json.dump(source.graph(wait=True), sys.stdout, indent=1)
         sys.stdout.write("\n")
         return 0
     httpd = http.server.ThreadingHTTPServer(("127.0.0.1", a.port), make_handler(source))

@@ -1,0 +1,3 @@
+working [at=1790000310]: reproduced the stale DNS record
+note: scratch line without a state
+needs-decision [key=ttl] [at=1790000330]: lower the TTL to 60s or keep 300s?

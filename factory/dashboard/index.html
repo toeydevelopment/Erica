@@ -259,10 +259,12 @@ function header(graph) {
     chip.append(d, document.createTextNode(`${s} ${counts[s]}`));
     box.appendChild(chip);
   }
-  $("generated").textContent = "generated " + new Date(graph.generated).toLocaleString();
+  const snap = graph.snapshot || {};
+  const age = snap.age == null ? "" : ` · snapshot ${snap.age < 120 ? snap.age + "s" : Math.round(snap.age / 60) + "m"} old`;
+  $("generated").textContent = "generated " + new Date(graph.generated).toLocaleString() + age;
   const problems = [...(graph.errors || [])];
   if (!graph.ledger || !graph.ledger.enabled) {
-    problems.unshift("Fleet activity ledger is off: create config/fleet-ledger in this home to see message flow.");
+    problems.unshift("Fleet activity ledger is off: messages come from status lines and steers only; create config/fleet-ledger in this home to also see dispatch, PR ready and merged.");
   }
   banner(problems.join(" "));
 }
