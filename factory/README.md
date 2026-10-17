@@ -29,6 +29,7 @@ factory/
   bin/sf-board-sync.sh       project task state onto GitHub Project boards
   bin/sf-hooks-install.sh    merge the guard hook into a settings.json (dry run by default)
   bin/sf-dashboard.sh        local org-chart dashboard of the fleet (dashboard/), see docs/dashboard.md
+  bin/sf-pr-check.sh         deterministic pull request description check
   hooks/sf-guard.sh          PreToolUse guard hook, see docs/hooks.md
   brief-include.md           shared standing rules for every worker
   config-templates/          example config files (boards.json)
@@ -36,6 +37,7 @@ factory/
   docs/fork-remotes.md       one-time remote and branch-protection setup
   docs/runners.md            runner skill config and health sampler check
   docs/hooks.md              what the guard hook blocks and its exceptions
+  docs/pipeline-review.md    which prose rules a script checks, and proposals for the rest
   tests/                     plain-bash tests, run by the overlay workflow
 skills/sf-<name>/            public skills installable into any project
 .claude-plugin/              plugin marketplace entry (added by later tasks)
@@ -58,6 +60,12 @@ skills/sf-<name>/            public skills installable into any project
 Run `factory/bin/sf-sync-upstream.sh` from a clean checkout.
 It merges `upstream/main` (never a rebase, never a force), reruns `bin/fm-doc-audience-check.sh` and the tests in `factory/tests/`, and leaves the push to you.
 Push the result without `--force`, so every home can keep fast-forwarding from the fork.
+
+## Pull request check
+
+`factory/bin/sf-pr-check.sh` checks a pull request description against the rules in `brief-include.md` and exits 1 on any FAIL.
+Run it before pushing with `--body-file`; the `sf-pr-check` workflow runs it on every pull request to `main`.
+Its header lists the rules and options, and [`docs/pipeline-review.md`](docs/pipeline-review.md) explains which rules it took over from prose.
 
 ## Epic delivery
 
