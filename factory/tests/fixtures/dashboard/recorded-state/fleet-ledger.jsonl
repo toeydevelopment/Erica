@@ -1,0 +1,10 @@
+{"v":1,"ts":1790000000,"event":"task.dispatched","task":"sm-docs","kind":"secondmate","project":null,"harness":"claude","model":null}
+{"v":1,"ts":1790000010,"event":"task.dispatched","task":"ship-login","kind":"ship","project":"webapp","harness":"claude","model":null}
+{"v":1,"ts":1790000020,"event":"task.dispatched","task":"ship-api","kind":"ship","project":"api","harness":"codex","model":null}
+{"v":1,"ts":1790000040,"event":"task.status","task":"ship-login","state":"working","key":null,"text":" bug reproduced"}
+{"v":1,"ts":1790000100,"event":"task.status","task":"ship-api","state":"blocked","key":"db-creds","text":" staging database credentials missing"}
+{"v":1,"ts":1790000200,"event":"task.status","task":"ship-login","state":"done","key":null,"text":" PR https://github.com/acme/webapp/pull/7 checks green"}
+{"v":1,"ts":1790000210,"event":"task.pr_ready","task":"ship-login","pr":"https://github.com/acme/webapp/pull/7"}
+not json, ignored
+{"v":1,"ts":1790000220,"event":"task.future_event","task":"ship-login"}
+{"v":1,"ts":1790000300,"event":"task.merged","task":"ship-login","via":"pr","pr":"https://github.com/acme/webapp/pull/7"}

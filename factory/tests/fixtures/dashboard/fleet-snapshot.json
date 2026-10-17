@@ -1,0 +1,50 @@
+{
+  "schema": "fm-fleet-snapshot.v1",
+  "generated": "2026-09-21T14:20:00Z",
+  "fm_home": "/home/u/fm",
+  "tasks": [
+    {
+      "id": "ship-api",
+      "kind": "ship",
+      "branch": "fm/ship-api",
+      "project": "/home/u/fm/projects/api",
+      "paths": {"status_log": {"last_event": {"state": "blocked", "note": "staging database credentials missing", "raw": "blocked [at=1790000100] [key=db-creds]: staging database credentials missing"}}},
+      "current_state": {"state": "blocked", "source": "status-log", "detail": "open decision db-creds"},
+      "pr": {"url": null, "source": "absent", "head": null},
+      "backlog": {"title": "Rate-limit the public search endpoint"}
+    },
+    {
+      "id": "ship-login",
+      "kind": "ship",
+      "branch": "fm/ship-login",
+      "project": "/home/u/fm/projects/webapp",
+      "paths": {"status_log": {"last_event": {"state": "done", "note": "PR https://github.com/acme/webapp/pull/7 checks green", "raw": "done [at=1790000200]: PR https://github.com/acme/webapp/pull/7 checks green"}}},
+      "current_state": {"state": "done", "source": "status-log", "detail": "PR merged"},
+      "pr": {"url": "https://github.com/acme/webapp/pull/7", "source": "meta", "head": "abc1234"},
+      "backlog": {"title": "Fix login redirect loop after session expiry"}
+    },
+    {
+      "id": "sm-docs",
+      "kind": "secondmate",
+      "branch": null,
+      "project": null,
+      "paths": {"status_log": {"last_event": {"state": "working", "note": "routed perf audit to a scout", "raw": "working [at=1790000250]: routed perf audit to a scout"}}},
+      "current_state": {"state": "working", "source": "pane", "detail": "harness busy"},
+      "pr": {"url": null, "source": "absent", "head": null},
+      "backlog": {"title": null}
+    }
+  ],
+  "secondmate_current": {
+    "records": [
+      {
+        "id": "sm-docs",
+        "active_children": [
+          {"id": "scout-perf", "kind": "scout", "state": "paused", "repo": "docs-site", "name": "Find why the docs build takes nine minutes", "source": "status-log", "doing": "waiting for the nightly build log"}
+        ]
+      }
+    ],
+    "total": 1,
+    "shown": 1,
+    "truncated": 0
+  }
+}
