@@ -1,0 +1,4 @@
+{
+  "ui_globs": ["*.html", "*.vue", "*.tsx", "*.jsx", "*.css"],
+  "disabled": []
+}
