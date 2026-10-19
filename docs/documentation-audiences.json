@@ -597,6 +597,10 @@
       "audience": "operator-current"
     },
     {
+      "path": "factory/docs/keep-main-green.md",
+      "audience": "operator-current"
+    },
+    {
       "path": "factory/docs/pipeline-review.md",
       "audience": "operator-current"
     },

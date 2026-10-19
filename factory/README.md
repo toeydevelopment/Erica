@@ -55,6 +55,9 @@ skills/sf-<name>/            public skills installable into any project
 5. Work on any project as usual.
    Workers launched from this home now receive the factory rules in their instructions.
 
+Complete the [keep-main-green onboarding checklist](docs/keep-main-green.md) for each project before dispatching parallel work.
+The normal install above includes the shared failure-handling and delivery rules; no separate rule import is needed after a fresh clone.
+
 ## Stay current with upstream
 
 Run `factory/bin/sf-sync-upstream.sh` from a clean checkout.
