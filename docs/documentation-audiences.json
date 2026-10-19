@@ -613,6 +613,10 @@
       "audience": "operator-current"
     },
     {
+      "path": "factory/tests/fixtures/dashboard/sm-ops-home/recorded-data/backlog.md",
+      "audience": "maintainer-verification"
+    },
+    {
       "path": "skills/sf-runner-ops/SKILL.md",
       "audience": "public-product"
     },
