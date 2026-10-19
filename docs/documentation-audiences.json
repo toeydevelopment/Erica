@@ -597,6 +597,10 @@
       "audience": "operator-current"
     },
     {
+      "path": "factory/docs/keep-main-green.md",
+      "audience": "operator-current"
+    },
+    {
       "path": "factory/docs/pipeline-review.md",
       "audience": "operator-current"
     },
@@ -607,6 +611,10 @@
     {
       "path": "factory/docs/runners.md",
       "audience": "operator-current"
+    },
+    {
+      "path": "factory/tests/fixtures/dashboard/sm-ops-home/recorded-data/backlog.md",
+      "audience": "maintainer-verification"
     },
     {
       "path": "skills/sf-runner-ops/SKILL.md",

@@ -20,7 +20,9 @@ Assume your worktree and any temporary directory disappear when you finish.
 Local verification is always required: run the repository's own commands in your worktree and record the exact commands, commit SHAs and results in the pull request.
 Also report the hosted check results for your pull request head.
 A red hosted check is a real signal: investigate it and fix it or explain it, and never dismiss it as unavailable CI.
-A hosted check that was cancelled, or never started because of runner capacity, may be re-run once; say so in the pull request.
+For local failures in untouched paths, record the command, failing test or tooling error, paths and available base-branch evidence in the pull request, then continue to hosted CI without asking your lead.
+Treat these as baseline failures unless evidence links them to your change; an unchanged test can still expose your regression.
+A flaky or tooling-only local failure gets one retry, then hosted CI is the gate; record both attempts, and never claim an unrun suite passed.
 
 ## Write for the next reader, not for the ticket
 
@@ -69,13 +71,16 @@ Do not write tests that only restate constants, read source files as text, or mo
 
 Your supervising lead decides; you execute the one job in your instructions.
 Never approve your own review finding or question, never widen scope, and never start a next task on your own.
-When you are blocked, unsure, or failing the same check twice, stop and report exactly what you need.
+Apply the standing answers below before escalating; stop and report unresolved blockers or uncertainty, not a local failure covered above.
+If your work overlaps an open human pull request, stop and report its URL and the overlap instead of competing.
 
 ## Keep the feedback loop short
 
 Do not re-verify what the pipeline or CI already proved; run the narrowest check that answers the question.
 Do not repeat an optional evidence probe after the first good result; record it once.
-If the same step fails twice, stop and report it instead of trying a third variant.
+After two failures, do not try a third variant; use the local-failure rule above or report an unresolved blocker.
+For a test-only or docs-only delta after review, refresh the review note with the reviewed SHA, current SHA, delta and relevant verification instead of commissioning another review.
+Do not claim the reviewer reviewed the new SHA or bypass a required gate.
 
 ## Repository workflow profile
 
@@ -103,7 +108,8 @@ These answers are already given, so respond through the gate right away instead 
 
 - A finding about the pull request description only (missing or wrong section, door, approver, provenance table): fix the description and rerun only the affected check.
 - A test-only change that makes a racy or flaky test deterministic and is needed for this pull request's CI to pass is in scope: keep it and say why under scope and limitations.
-- A CI job cancelled without a verdict, or one that failed on runner capacity: rerun it once with `gh run rerun <run-id> --failed`.
+- A CI job cancelled without a verdict, or one that failed on runner capacity: rerun the affected run once and record it in the pull request.
+  A cancelled leftover matrix placeholder can still block the guarded merge; rerun that run instead of asking your lead (rerun the whole run if `--failed` selects no jobs).
 - A CI failure that also fails on the base branch without your change is not yours: do not fix it in this pull request, record the evidence, and report `paused` while you wait for the base-branch fix.
 - If `gh-axi` does not work in your worktree, use plain `gh` for the same action.
 
@@ -116,6 +122,9 @@ Still stop for your lead on anything that widens scope, changes product behaviou
 - Open the pull request within 48 hours of your first commit.
 - When the task belongs to an epic, put `Part of #<epic issue>` in the pull request body.
 - Hide unfinished behavior behind a feature flag and name it on a `Flag: <name>` line in the pull request body.
+- After base-branch merges, catch up with the latest base once, immediately before ready, using the project's configured method: rebase or fast-forward when `forbid_merge_commits` is true, a true merge otherwise.
+- Mark ready together with the last push, because ready transitions can rerun checks; collect results for that final head.
+- If the base advances again, let the merge queue handle it or report the remaining branch-protection blocker instead of starting another catch-up loop.
 - Run `factory/bin/sf-trunk-check.sh --local` before reporting ready.
 
 ## Shared host: never kill by name
