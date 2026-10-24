@@ -112,4 +112,5 @@ Recommendation: later; add the PR check column first, because it answers "what i
 | One-way door by changed path | later |
 | Split no-mistakes-only rules out of the shared brief | later |
 | Direct-PR default for overlay-only work | keep |
+| Review round budget (one run reached 13 review rounds, 210 agent-minutes, about 425M tokens) | done: `brief-include.md` "Review rounds have a budget", counted by the worker itself because `axi status` does not expose the round number |
 | Dashboard PR check column, epic roll-up, stage times | later |
