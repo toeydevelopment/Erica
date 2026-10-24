@@ -15,6 +15,14 @@
 # The active home is $FM_HOME, or this checkout when FM_HOME is unset.
 # Secondmate homes do not inherit brief-include.md: run this script once per
 # secondmate home, for example `FM_HOME=<secondmate home> factory/bin/sf-install.sh`.
+#
+# It also prints `FAIL guard hook not installed in <file>` for each project in the
+# home's data/projects.md that is cloned under projects/, once per harness hook file
+# that does not name sf-guard.sh: .claude/settings.json (Claude and Grok),
+# .codex/hooks.json, .agents/hooks.json (agy) and .pi/extensions/sf-guard.ts, then
+# one WARN per harness whose installed guard is still not enforced or not verified.
+# This is a warning only: the exit status stays 0 so the brief include is still
+# written, and nothing is installed; run factory/bin/sf-hooks-install.sh to add it.
 set -eu
 
 CODE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -63,3 +71,15 @@ else
   echo "wrote: $TARGET"
 fi
 echo "note: brief-include.md is not inherited by secondmate homes; run this script once per secondmate home with FM_HOME set to it"
+
+REGISTRY="$FM_HOME/data/projects.md"
+if [ -f "$REGISTRY" ]; then
+  sed -n 's/^- \([^ ]*\) .*/\1/p' "$REGISTRY" | while IFS= read -r name; do
+    [ -d "$FM_HOME/projects/$name" ] || continue
+    for f in .claude/settings.json .codex/hooks.json .agents/hooks.json .pi/extensions/sf-guard.ts; do
+      grep -qF 'sf-guard.sh' "$FM_HOME/projects/$name/$f" 2>/dev/null || echo "FAIL guard hook not installed in $FM_HOME/projects/$name/$f"
+    done
+  done
+  echo "WARN codex: firstmate launches codex workers with hooks disabled, guard not enforced for them"
+  echo "WARN grok: guard not verified against a recorded grok payload"
+fi

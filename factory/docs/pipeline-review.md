@@ -38,7 +38,7 @@ Rules that remain prose, because a script cannot decide them:
 - Line 60 "Mark a change one-way when it cannot be undone": the check proves a door is named, not that it is the right door. A later rule could require `one-way` when changed paths match a configured list (migrations, deploy config). Cost: one table row and a config key. Recommendation: later, once a project lists its one-way paths.
 - Lines 27-29 "Write for the next reader" and lines 65-66 test quality: judgment.
 
-Pointer firstmate should add to `factory/brief-include.md` under "Pull request descriptions" (this task did not edit that file because the trunk task owns a section there):
+Pointer now in `factory/brief-include.md` under "Pull request descriptions":
 
 ```markdown
 Before you open or edit a pull request, run `factory/bin/sf-pr-check.sh --body-file <body-file> --title "<title>"` and fix every FAIL line; the `sf-pr-check` workflow runs the same check on the pull request.
@@ -105,9 +105,9 @@ Recommendation: later; add the PR check column first, because it answers "what i
 | Proposal | Recommendation |
 |----------|----------------|
 | `sf-pr-check` plus workflow | done in this change |
-| Brief pointer line for `sf-pr-check` | do now (firstmate edits `brief-include.md`) |
-| Guard hook presence check in `sf-install.sh` | do now |
-| Brief size budget test | do now |
+| Brief pointer line for `sf-pr-check` | done: `brief-include.md` "Pull request descriptions" |
+| Guard hook presence check in `sf-install.sh` | done: warning only, see `docs/hooks.md`, pinned by `tests/sf-install.test.sh` |
+| Brief size budget test | done: `tests/sf-brief-budget.test.sh` |
 | `sf-status.sh` writer | later |
 | One-way door by changed path | later |
 | Split no-mistakes-only rules out of the shared brief | later |

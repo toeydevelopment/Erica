@@ -31,6 +31,7 @@ factory/
   bin/sf-dashboard.sh        local org-chart dashboard of the fleet (dashboard/), see docs/dashboard.md
   bin/sf-pr-check.sh         deterministic pull request description check
   hooks/sf-guard.sh          PreToolUse guard hook, see docs/hooks.md
+  hooks/sf-guard-pi.ts       Pi extension adapter for the guard hook
   brief-include.md           shared standing rules for every worker
   config-templates/          example config files (boards.json)
   config-templates/REVIEW.md fill-in review instructions template, adopted with skills/sf-review-md

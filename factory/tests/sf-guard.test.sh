@@ -74,6 +74,36 @@ expect block "FM_HOME config .env" "$(rd /fm/config/.env)"
 SF_GUARD_ALLOW=/fm/config expect allow "SF_GUARD_ALLOW prefix" "$(rd /fm/config/.env)"
 SF_GUARD_ALLOW=/fm/config expect block "SF_GUARD_ALLOW is not a prefix match on siblings" "$(rd /fm/config2/.env)"
 
+# Recorded payloads from real harnesses (fixtures/harness-payloads.jsonl, see docs/hooks.md).
+# Each benign call must pass; the same call with its value swapped for a secret
+# read, a literal key or an outside rm must block in that harness's own way.
+unset FM_HOME
+verdict() {  # <harness> <payload> -> block|allow
+  local out rc=0
+  out=$(printf '%s' "$2" | "$GUARD" 2>/dev/null) || rc=$?
+  if [ "$1" = agy ]; then
+    [ "$rc" = 0 ] || { echo "exit-$rc"; return; }
+    printf '%s' "$out" | jq -e '.decision == "deny"' >/dev/null 2>&1 && echo block || echo allow
+  else
+    case "$rc" in 2) echo block ;; 0) echo allow ;; *) echo "exit-$rc" ;; esac
+  fi
+}
+swap() { jq -c --arg from "$1" --arg to "$2" '.payload | walk(if type == "string" then gsub($from; $to) else . end)'; }
+n=0
+while IFS= read -r rec; do
+  h=$(printf '%s' "$rec" | jq -r .harness)
+  label="$h $(printf '%s' "$rec" | jq -c '.payload | .tool_name // .toolName // .toolCall.name')"
+  [ "$(verdict "$h" "$(printf '%s' "$rec" | jq -c .payload)")" = allow ] || fail "$label benign call blocked"
+  for pair in 'notes\.txt|.env' 'hello|AKIAABCDEFGHIJKLMNOP' 'bye|AKIAABCDEFGHIJKLMNOP' 'echo hi|cat .env' 'echo hi|rm -rf /etc/x'; do
+    printf '%s' "$rec" | grep -Eq -- "${pair%%|*}" || continue
+    # In an edit, hello is the old text, which is never scanned.
+    case "$pair" in hello*) printf '%s' "$rec" | grep -q bye && continue ;; esac
+    [ "$(verdict "$h" "$(printf '%s' "$rec" | swap "${pair%%|*}" "${pair#*|}")")" = block ] || fail "$label with ${pair#*|} not blocked"
+    n=$((n + 1))
+  done
+done < "$HERE/fixtures/harness-payloads.jsonl"
+[ "$n" -ge 15 ] || fail "only $n recorded-payload block cases ran"
+
 # malformed input never blocks
 expect allow "empty stdin" ""
 expect allow "garbage stdin" "not json"
