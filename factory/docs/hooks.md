@@ -34,7 +34,7 @@ Each harness reads the guard from its own project file; install every file a pro
 | Grok | `.claude/settings.json` (Grok also reads Claude settings) | not verified: Grok was not signed in on the recording host, so no Grok payload is recorded; its documented camelCase shape is accepted but untested |
 | Codex | `.codex/hooks.json` | codex-cli 0.163.0, live block of a secret read and an `apply_patch` key write |
 | Antigravity (agy) | `.agents/hooks.json` | agy 1.4.5, live block of a secret read |
-| Pi | `.pi/extensions/sf-guard.ts`, the `factory/hooks/sf-guard-pi.ts` adapter | Pi 1.1.0, live block of a secret read and a key write |
+| Pi | `.pi/extensions/sf-guard.ts`, the `factory/hooks/sf-guard-pi.ts` adapter | Pi 1.1.0, live block of a secret read and a key write with the adapter and an installed copy loaded by `pi -e`; Pi skips an untrusted project file, so loading from `.pi/extensions/` after the trust prompt is not live-verified |
 
 Limits a project file cannot fix:
 
