@@ -1,0 +1,14 @@
+# Example high-risk path list for factory/bin/sf-risk-audit.sh.
+# One shell glob per line; "#" starts a comment. "*" also matches "/".
+# A leading "**/" also matches at the root. Keep a real list per repository in the home's
+# private data, each glob with a one-line reason.
+**/auth/**            # login, sessions, tokens
+**/permission*        # roles and access checks
+**/billing/**         # payments and invoices
+**/migrations/**      # database migrations, not undone by a revert
+**/*.proto            # wire and storage schemas
+deploy/**             # deploy and runtime config
+**/Dockerfile*        # runtime images
+.github/workflows/**  # CI workflows
+**/notify*/**         # customer notifications
+**/.env*              # secrets handling
