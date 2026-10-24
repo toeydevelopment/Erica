@@ -3,12 +3,13 @@
 #
 # Usage:
 #   sf-risk-audit.sh --repo <owner/name> --paths <file> --since <YYYY-MM-DD> --until <YYYY-MM-DD>
-#                    [--cache <dir>] [--offline]
+#                    [--base <branch>] [--cache <dir>] [--offline]
 #
 # Online, it lists the repository's closed pull requests through `gh api` (GET only, every
 # parameter in the URL), keeps those merged inside the closed UTC date window, and caches the
 # raw JSON per pull request under <cache>/<owner>__<name>/: pr-<n>.json (the list item) and
 # files-<n>.json (its changed files, fetched only when missing so an interrupted run resumes).
+# --base keeps only pull requests merged into that branch (default: every base).
 # --offline makes no GitHub call and recomputes from the cache alone. Both modes compute the
 # output from the cache through the same code, so a rerun on the same cache is byte-identical.
 #
@@ -37,7 +38,7 @@ export LC_ALL=C
 CODE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 FM_HOME="${FM_HOME:-$CODE_ROOT}"
 GH="${SF_GH:-gh}"
-REPO="" PATHS="" SINCE="" UNTIL="" CACHE="" OFFLINE=0
+REPO="" PATHS="" SINCE="" UNTIL="" CACHE="" BASE="" OFFLINE=0
 SIG='Updates from [git push no-mistakes](https://github.com/kunchenguid/no-mistakes)'
 MARKERS=("$SIG" '<!-- no-mistakes-pipeline-attestation:v1 ' '<!-- no-mistakes-pr-appendix:v1')
 
@@ -45,10 +46,10 @@ die() { echo "sf-risk-audit: $*" >&2; exit 2; }
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
-    --repo|--paths|--since|--until|--cache)
+    --repo|--paths|--since|--until|--cache|--base)
       [ "$#" -ge 2 ] || die "$1 needs a value"
       case "$1" in
-        --repo) REPO=$2 ;; --paths) PATHS=$2 ;; --since) SINCE=$2 ;; --until) UNTIL=$2 ;; --cache) CACHE=$2 ;;
+        --repo) REPO=$2 ;; --paths) PATHS=$2 ;; --since) SINCE=$2 ;; --until) UNTIL=$2 ;; --cache) CACHE=$2 ;; --base) BASE=$2 ;;
       esac
       shift 2 ;;
     --offline) OFFLINE=1; shift ;;
@@ -123,7 +124,8 @@ nm_status() {
 
 OUT=$(for f in "$DIR"/pr-*.json; do
   [ -e "$f" ] || continue
-  jq -e --arg s "$SINCE" --arg u "$UNTIL" '.merged_at != null and .merged_at[0:10] >= $s and .merged_at[0:10] <= $u' \
+  jq -e --arg s "$SINCE" --arg u "$UNTIL" --arg b "$BASE" \
+    '.merged_at != null and .merged_at[0:10] >= $s and .merged_at[0:10] <= $u and ($b == "" or .base.ref == $b)' \
     "$f" >/dev/null || continue
   n=$(jq -r '.number' "$f")
   [ -f "$DIR/files-$n.json" ] || die "files-$n.json missing from $DIR (run once without --offline)"
@@ -132,7 +134,7 @@ OUT=$(for f in "$DIR"/pr-*.json; do
   echo "$n $([ -n "$match" ] && echo high || echo low) $st ${match:--}"
 done | sort -n -k1,1)
 [ -z "$OUT" ] || printf '%s\n' "$OUT"
-awk -v repo="$REPO" -v win="$SINCE..$UNTIL" -v pin="$PIN" '
+awk -v repo="$REPO" -v win="$SINCE..$UNTIL" -v base="${BASE:-all}" -v pin="$PIN" '
   NF { t++ } $2 == "high" { h++; c[$3]++ }
-  END { printf "summary repo=%s window=%s prs=%d high=%d high_compliant=%d high_marker=%d high_none=%d verifier=%s\n",
-    repo, win, t, h, c["compliant"], c["marker"], c["none"], pin }' <<<"$OUT"
+  END { printf "summary repo=%s window=%s base=%s prs=%d high=%d high_compliant=%d high_marker=%d high_none=%d verifier=%s\n",
+    repo, win, base, t, h, c["compliant"], c["marker"], c["none"], pin }' <<<"$OUT"

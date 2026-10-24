@@ -39,7 +39,7 @@ audit --since 2026-09-01 --until 2026-09-30 --cache "$TMP/cache"
 [ "$CODE" = 0 ] || fail "online run exited $CODE: $OUT"
 [ "$(sed '$d' <<<"$OUT")" = "$WANT" ] || fail "online lines:"$'\n'"$OUT"
 case "$(tail -n 1 <<<"$OUT")" in
-  "summary repo=acme/app window=2026-09-01..2026-09-30 prs=6 high=4 high_compliant=1 high_marker=1 high_none=2 verifier="*) : ;;
+  "summary repo=acme/app window=2026-09-01..2026-09-30 base=all prs=6 high=4 high_compliant=1 high_marker=1 high_none=2 verifier="*) : ;;
   *) fail "summary: $(tail -n 1 <<<"$OUT")" ;;
 esac
 pass "tiers, statuses, rename, window bounds and summary"
@@ -64,9 +64,15 @@ pass "online rerun reuses cached file lists"
 
 audit --since 2026-11-01 --until 2026-11-30 --cache "$TMP/cache" --offline
 [ "$CODE" = 0 ] || fail "empty window exited $CODE"
-case "$OUT" in "summary repo=acme/app window=2026-11-01..2026-11-30 prs=0 high=0 high_compliant=0 high_marker=0 high_none=0 verifier="*) : ;;
+case "$OUT" in "summary repo=acme/app window=2026-11-01..2026-11-30 base=all prs=0 high=0 high_compliant=0 high_marker=0 high_none=0 verifier="*) : ;;
   *) fail "empty window: $OUT" ;; esac
 pass "empty window prints only a zero summary"
+
+audit --since 2026-09-01 --until 2026-09-30 --cache "$TMP/cache" --offline --base main
+[ "$CODE" = 0 ] || fail "--base exited $CODE: $OUT"
+[ "$(sed '$d' <<<"$OUT")" = "$(grep -Ev '^(2|5) ' <<<"$WANT")" ] || fail "--base main lines:"$'\n'"$OUT"
+case "$(tail -n 1 <<<"$OUT")" in *" base=main prs=4 high=2 "*) : ;; *) fail "--base summary: $OUT" ;; esac
+pass "--base keeps only pull requests merged into that branch"
 
 rm -f "$TMP/cache"/require-no-mistakes-*.py
 audit --since 2026-09-01 --until 2026-09-30 --cache "$TMP/cache" --offline

@@ -9,6 +9,9 @@
     },
     "user": {
       "login": "dev"
+    },
+    "base": {
+      "ref": "main"
     }
   },
   {
@@ -21,6 +24,9 @@
     },
     "user": {
       "login": "dev"
+    },
+    "base": {
+      "ref": "epic/x"
     }
   },
   {
@@ -33,6 +39,9 @@
     },
     "user": {
       "login": "dev"
+    },
+    "base": {
+      "ref": "main"
     }
   },
   {
@@ -45,6 +54,9 @@
     },
     "user": {
       "login": "dev"
+    },
+    "base": {
+      "ref": "main"
     }
   },
   {
@@ -57,6 +69,9 @@
     },
     "user": {
       "login": "dev"
+    },
+    "base": {
+      "ref": "epic/x"
     }
   },
   {
@@ -69,6 +84,9 @@
     },
     "user": {
       "login": "dev"
+    },
+    "base": {
+      "ref": "main"
     }
   },
   {
@@ -81,6 +99,9 @@
     },
     "user": {
       "login": "dev"
+    },
+    "base": {
+      "ref": "main"
     }
   },
   {
@@ -93,6 +114,9 @@
     },
     "user": {
       "login": "dev"
+    },
+    "base": {
+      "ref": "main"
     }
   }
 ]
