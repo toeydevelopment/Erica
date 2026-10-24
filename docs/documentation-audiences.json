@@ -359,6 +359,10 @@
       "audience": "operator-example"
     },
     {
+      "path": "docs/examples/usage-warner",
+      "audience": "operator-example"
+    },
+    {
       "path": "docs/examples/watched-tools.json",
       "audience": "operator-example"
     },
@@ -492,6 +496,14 @@
     },
     {
       "path": "docs/turnend-guard.md",
+      "audience": "operator-current"
+    },
+    {
+      "path": "docs/opencode-2-plugin-port-scope.md",
+      "audience": "maintainer-verification"
+    },
+    {
+      "path": "docs/usage-warner.md",
       "audience": "operator-current"
     },
     {
@@ -680,6 +692,10 @@
     },
     {
       "path": "tests/captures/no-mistakes-v1.70.1/README.md",
+      "audience": "maintainer-verification"
+    },
+    {
+      "path": "tests/captures/kimi-code-2.3.0/README.md",
       "audience": "maintainer-verification"
     },
     {
