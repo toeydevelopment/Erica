@@ -30,6 +30,7 @@ factory/
   bin/sf-hooks-install.sh    merge the guard hook into a settings.json (dry run by default)
   bin/sf-dashboard.sh        local org-chart dashboard of the fleet (dashboard/), see docs/dashboard.md
   bin/sf-pr-check.sh         deterministic pull request description check
+  bin/sf-risk-audit.sh       read-only audit of high-risk merges without no-mistakes, see docs/risk-audit.md
   hooks/sf-guard.sh          PreToolUse guard hook, see docs/hooks.md
   brief-include.md           shared standing rules for every worker
   config-templates/          example config files (boards.json)

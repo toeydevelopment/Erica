@@ -1,0 +1,98 @@
+[
+  {
+    "number": 1,
+    "title": "Add migration",
+    "merged_at": "2026-09-02T10:00:00Z",
+    "body": "Updates from [git push no-mistakes](https://github.com/kunchenguid/no-mistakes)\n<!-- no-mistakes-pipeline-attestation:v1 {\"head_sha\":\"1111111111111111111111111111111111111111\",\"steps\":[{\"step\":\"review\",\"status\":\"completed\"},{\"step\":\"test\",\"status\":\"completed\"},{\"step\":\"document\",\"status\":\"completed\"}]} -->",
+    "head": {
+      "sha": "1111111111111111111111111111111111111111"
+    },
+    "user": {
+      "login": "dev"
+    }
+  },
+  {
+    "number": 2,
+    "title": "Deploy tweak",
+    "merged_at": "2026-09-10T10:00:00Z",
+    "body": "Updates from [git push no-mistakes](https://github.com/kunchenguid/no-mistakes)\n<!-- no-mistakes-pipeline-attestation:v1 {\"head_sha\":\"2222222222222222222222222222222222222222\",\"steps\":[{\"step\":\"review\",\"status\":\"completed\"},{\"step\":\"test\",\"status\":\"completed\"},{\"step\":\"document\",\"status\":\"completed\"}]} -->",
+    "head": {
+      "sha": "3333333333333333333333333333333333333333"
+    },
+    "user": {
+      "login": "dev"
+    }
+  },
+  {
+    "number": 3,
+    "title": "CI change",
+    "merged_at": "2026-09-15T10:00:00Z",
+    "body": "plain body",
+    "head": {
+      "sha": "3333333333333333333333333333333333333333"
+    },
+    "user": {
+      "login": "dev"
+    }
+  },
+  {
+    "number": 4,
+    "title": "App code",
+    "merged_at": "2026-09-01T00:00:00Z",
+    "body": "plain",
+    "head": {
+      "sha": "3333333333333333333333333333333333333333"
+    },
+    "user": {
+      "login": "dev"
+    }
+  },
+  {
+    "number": 5,
+    "title": "Move notes",
+    "merged_at": "2026-09-20T10:00:00Z",
+    "body": null,
+    "head": {
+      "sha": "3333333333333333333333333333333333333333"
+    },
+    "user": {
+      "login": "dev"
+    }
+  },
+  {
+    "number": 6,
+    "title": "Outside window",
+    "merged_at": "2026-10-01T00:00:00Z",
+    "body": "plain",
+    "head": {
+      "sha": "3333333333333333333333333333333333333333"
+    },
+    "user": {
+      "login": "dev"
+    }
+  },
+  {
+    "number": 7,
+    "title": "Closed unmerged",
+    "merged_at": null,
+    "body": "plain",
+    "head": {
+      "sha": "3333333333333333333333333333333333333333"
+    },
+    "user": {
+      "login": "dev"
+    }
+  },
+  {
+    "number": 8,
+    "title": "Last second",
+    "merged_at": "2026-09-30T23:59:59Z",
+    "body": "plain",
+    "head": {
+      "sha": "3333333333333333333333333333333333333333"
+    },
+    "user": {
+      "login": "dev"
+    }
+  }
+]

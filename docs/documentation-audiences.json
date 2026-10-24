@@ -627,6 +627,10 @@
       "audience": "operator-current"
     },
     {
+      "path": "factory/docs/risk-audit.md",
+      "audience": "operator-current"
+    },
+    {
       "path": "factory/docs/runners.md",
       "audience": "operator-current"
     },
