@@ -34,8 +34,12 @@ mkdir -p "$HOME_DIR/data" "$HOME_DIR/projects/bare" "$HOME_DIR/projects/guarded/
 printf -- '- bare [direct-PR] - no settings (added 2026-10-24)\n- guarded - hooked (added 2026-10-24)\n- absent - not cloned (added 2026-10-24)\n' > "$HOME_DIR/data/projects.md"
 echo '{"hooks":{"PreToolUse":[{"hooks":[{"type":"command","command":"/x/factory/hooks/sf-guard.sh"}]}]}}' > "$HOME_DIR/projects/guarded/.claude/settings.json"
 OUT=$("$INSTALL") || fail "guard hook warning changed the exit status"
-printf '%s\n' "$OUT" | grep -qxF "FAIL guard hook not installed in $HOME_DIR/projects/bare/.claude/settings.json" || fail "missing hook not reported"
-[ "$(printf '%s\n' "$OUT" | grep -c '^FAIL')" -eq 1 ] || fail "hooked or uncloned project reported"
+for f in .claude/settings.json .codex/hooks.json .agents/hooks.json .pi/extensions/sf-guard.ts; do
+  printf '%s\n' "$OUT" | grep -qxF "FAIL guard hook not installed in $HOME_DIR/projects/bare/$f" || fail "missing $f hook not reported"
+done
+[ "$(printf '%s\n' "$OUT" | grep -c '^FAIL.*/guarded/')" -eq 3 ] || fail "hooked claude settings reported"
+printf '%s\n' "$OUT" | grep -q '/absent/' && fail "uncloned project reported"
+printf '%s\n' "$OUT" | grep -q '^WARN codex: ' || fail "codex enforcement gap not warned"
 [ ! -e "$HOME_DIR/projects/bare/.claude" ] || fail "check wrote project settings"
 rm -rf "$HOME_DIR/data" "$HOME_DIR/projects"
 

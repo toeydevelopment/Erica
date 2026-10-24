@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
-# sf-guard.sh - Claude Code PreToolUse guard hook for factory workers.
+# sf-guard.sh - PreToolUse guard hook for factory workers on any supported harness.
 #
-# Usage (wired by factory/bin/sf-hooks-install.sh, matcher Read|Write|Edit|MultiEdit|Bash):
+# Usage (wired by factory/bin/sf-hooks-install.sh):
 #   sf-guard.sh < hook-json
 #
-# Reads the PreToolUse JSON from stdin (tool_name, tool_input, cwd) and blocks by
-# exiting 2 with the reason on stderr; any other outcome exits 0 (no decision).
+# Reads one pre-tool payload from stdin and blocks by exiting 2 with the reason on
+# stderr; any other outcome exits 0 (no decision). Accepted payload shapes:
+#   Claude, Codex: {tool_name, tool_input, cwd}      (Codex edits arrive as apply_patch)
+#   Grok:          {toolName, toolInput, cwd}
+#   Pi:            {toolName, input, cwd}            (built by hooks/sf-guard-pi.ts)
+#   Antigravity:   {toolCall:{name, args}, workspacePaths}; there a deny is
+#                  {"decision":"deny"} on stdout with exit 0, the agy hook contract.
 # Blocks three things:
 #   1. reading secret files: .env, .env.*, *.pem, id_* (not *.pub), .credentials*,
 #      *credentials.json, .netrc, token / *.token / token.json files;
@@ -21,12 +26,32 @@ set -uf
 
 command -v jq >/dev/null 2>&1 || { echo "sf-guard: jq missing, guard inactive" >&2; exit 0; }
 INPUT=$(cat)
-TOOL=$(printf '%s' "$INPUT" | jq -r '.tool_name // empty' 2>/dev/null) || exit 0
-CWD=$(printf '%s' "$INPUT" | jq -r '.cwd // empty' 2>/dev/null)
+# Normalise every shape to {tool: Read|Write|Bash, path, text, command, cwd}.
+NORM=$(printf '%s' "$INPUT" | jq -c '
+  (.tool_input // .toolInput // .input // .toolCall.args // {}) as $i
+  | (.tool_name // .toolName // .toolCall.name // "") as $t
+  | {cwd: (.cwd // .workspacePaths[0]? // ""),
+     tool: ({Read:"Read", read:"Read", read_file:"Read", view_file:"Read",
+             Bash:"Bash", bash:"Bash", run_terminal_command:"Bash", run_command:"Bash"}[$t]
+            // (if ($t | test("^(Write|Edit|MultiEdit|write|edit|apply_patch|search_replace|write_file|edit_file)$")) then "Write" else "" end)),
+     path: ($i.file_path // $i.path // $i.Path // ""),
+     command: ($i.CommandLine // $i.command // ""),
+     text: (if $t == "apply_patch" then ($i.command // "" | split("\n") | map(select(startswith("+"))) | join("\n"))
+            else [$i.content, $i.Content, $i.new_string, $i.newText, $i.Replacement,
+                  ($i.edits // [] | .[] | .new_string // .newText)] | map(select(type == "string")) | join("\n") end)}' 2>/dev/null) || exit 0
+field() { printf '%s' "$NORM" | jq -r --arg k "$1" '.[$k]'; }
+TOOL=$(field tool)
+CWD=$(field cwd)
 [ -n "$CWD" ] || CWD=$PWD
+AGY=$(printf '%s' "$INPUT" | jq -r 'has("toolCall")' 2>/dev/null)
 FM_HOME_DIR="${FM_HOME:-}"
 
-deny() { echo "sf-guard: blocked - $1" >&2; exit 2; }
+deny() {
+  echo "sf-guard: blocked - $1" >&2
+  # agy reports a nonzero exit as a failed hook; its deny is stdout JSON with exit 0.
+  [ "$AGY" != true ] || { jq -nc --arg r "sf-guard: blocked - $1" '{decision:"deny", reason:$r}'; exit 0; }
+  exit 2
+}
 
 allowed_path() {  # <abs-path>
   local p=$1 pre
@@ -82,12 +107,13 @@ check_write_text() {  # <text>
 
 case "$TOOL" in
   Read)
-    check_read_path "$(printf '%s' "$INPUT" | jq -r '.tool_input.file_path // empty')" ;;
-  Write|Edit|MultiEdit)
+    p=$(field path)
+    [ -n "$p" ] && check_read_path "$p" ;;
+  Write)
     # Only the content is scanned; writing a file named .env is not itself a read.
-    check_write_text "$(printf '%s' "$INPUT" | jq -r '[.tool_input.content, .tool_input.new_string, (.tool_input.edits // [] | .[].new_string)] | map(select(. != null)) | join("\n")')" ;;
+    check_write_text "$(field text)" ;;
   Bash)
-    cmd=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // empty')
+    cmd=$(field command)
     [ -n "$cmd" ] || exit 0
     # Keep heredoc bodies out. Inspect file-like arguments after reader verbs.
     parse_cmd=$(printf '%s\n' "$cmd" | awk '
