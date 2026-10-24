@@ -45,6 +45,7 @@ A pull request without this section is not ready.
 
 Read the repository's `.github/pull_request_template.md` before you open or edit a pull request.
 Fill every `## ` heading it lists, in its order, in one edit, because a workflow check that rejects the body reports one missing section at a time.
+Before you open or edit a pull request, run `factory/bin/sf-pr-check.sh --body-file <body-file> --title "<title>"` and fix every FAIL line; the `sf-pr-check` workflow runs the same check on the pull request.
 When the repository has no template, use these headings:
 
 ```markdown

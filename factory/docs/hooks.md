@@ -33,7 +33,11 @@ factory/bin/sf-hooks-install.sh <settings.json> --apply    # backs up to <settin
 The installer never runs on its own and touches only the file you name, for example a project's `.claude/settings.json`.
 It keeps existing settings and hooks, and running it again changes nothing.
 
+`factory/bin/sf-install.sh` reports, without installing anything, each registered project clone whose `.claude/settings.json` lacks the hook, as `FAIL guard hook not installed in <settings>`; the warning does not change its exit status.
+Only Claude Code settings are checked: other agent harnesses have no equivalent check, so their workers run unguarded.
+
 ## Tests
 
 `bash factory/tests/sf-guard.test.sh` feeds sample hook JSON to the guard.
 `bash factory/tests/sf-hooks-install.test.sh` runs the installer against temporary files.
+`bash factory/tests/sf-install.test.sh` pins the presence warning.

@@ -29,6 +29,16 @@ printf 'Private rule.\n\nSecond private rule.\n' > "$HOME_DIR/config/brief-inclu
 { cat "$HERE/../brief-include.md"; printf '\n'; cat "$HOME_DIR/config/brief-include.private.md"; } > "$HOME_DIR/expected"
 cmp -s <(tail -n +3 "$HOME_DIR/config/brief-include.md") "$HOME_DIR/expected" || fail "composition is not shared text then private tail"
 
+# Guard hook check: warn per registered clone lacking sf-guard.sh, never install, exit 0.
+mkdir -p "$HOME_DIR/data" "$HOME_DIR/projects/bare" "$HOME_DIR/projects/guarded/.claude"
+printf -- '- bare [direct-PR] - no settings (added 2026-10-24)\n- guarded - hooked (added 2026-10-24)\n- absent - not cloned (added 2026-10-24)\n' > "$HOME_DIR/data/projects.md"
+echo '{"hooks":{"PreToolUse":[{"hooks":[{"type":"command","command":"/x/factory/hooks/sf-guard.sh"}]}]}}' > "$HOME_DIR/projects/guarded/.claude/settings.json"
+OUT=$("$INSTALL") || fail "guard hook warning changed the exit status"
+printf '%s\n' "$OUT" | grep -qxF "FAIL guard hook not installed in $HOME_DIR/projects/bare/.claude/settings.json" || fail "missing hook not reported"
+[ "$(printf '%s\n' "$OUT" | grep -c '^FAIL')" -eq 1 ] || fail "hooked or uncloned project reported"
+[ ! -e "$HOME_DIR/projects/bare/.claude" ] || fail "check wrote project settings"
+rm -rf "$HOME_DIR/data" "$HOME_DIR/projects"
+
 # A copy of the overlay with FM_HOME unset installs into its own config/ only.
 ISOLATED=$(mktemp -d "${TMPDIR:-/tmp}/sf-install-root.XXXXXX")
 trap 'rm -rf "$HOME_DIR" "$ISOLATED"' EXIT
