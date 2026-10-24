@@ -595,6 +595,10 @@
       "audience": "agent-runtime"
     },
     {
+      "path": "factory/config-templates/REVIEW.md",
+      "audience": "operator-example"
+    },
+    {
       "path": "factory/docs/boards.md",
       "audience": "operator-current"
     },
@@ -684,6 +688,10 @@
     },
     {
       "path": "skills/sf-issue-intake/references/html-brief.md",
+      "audience": "public-product"
+    },
+    {
+      "path": "skills/sf-review-md/SKILL.md",
       "audience": "public-product"
     },
     {

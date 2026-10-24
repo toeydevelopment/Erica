@@ -33,6 +33,7 @@ factory/
   hooks/sf-guard.sh          PreToolUse guard hook, see docs/hooks.md
   brief-include.md           shared standing rules for every worker
   config-templates/          example config files (boards.json)
+  config-templates/REVIEW.md fill-in review instructions template, adopted with skills/sf-review-md
   docs/boards.md             board projection setup and rules
   docs/fork-remotes.md       one-time remote and branch-protection setup
   docs/runners.md            runner skill config and health sampler check
@@ -75,3 +76,9 @@ Its header lists the rules and options, and [`docs/pipeline-review.md`](docs/pip
 Every ticket ships trunk-based: `factory/bin/sf-trunk-check.sh` checks a pull request or the local branch against the trunk rules.
 An epic is an issue with the `epic` label, and `factory/bin/sf-epic-track.sh` shows its progress on GitHub.
 See [`docs/epic-delivery.md`](docs/epic-delivery.md).
+
+## Review instructions
+
+`factory/config-templates/REVIEW.md` is a short template a project owner fills in to tell reviewers what failure looks like in their repository, cap nits, skip paths, require file and line evidence, and open every summary with a count.
+The public [`sf-review-md`](../skills/sf-review-md/SKILL.md) skill drafts a project's `REVIEW.md` from that template using the project's own review comments, reverts and fix commits, and explains how to point a reviewer at it.
+Firstmate never writes a `REVIEW.md` into a project; the owner adopts it.
