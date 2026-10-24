@@ -116,6 +116,12 @@ These answers are already given, so respond through the gate right away instead 
 
 Still stop for your lead on anything that widens scope, changes product behaviour beyond the instructions, or is destructive.
 
+## Review rounds have a budget
+
+Count your own `no-mistakes axi respond --action fix` answers to the review step, keeping the count across reruns on the same branch; a fix command your lead dictates exactly does not count, so send it as given.
+After the third, never send a fourth or approve your way out: that gate is a genuinely new escalation, so write the round trail (per round the finding count and severities, and whether `git blame` puts each current finding's file:line in pipeline fix commits or your own code) to the home's `data/<your-task-id>/nm-<run>-rounds.txt`, append `needs-decision [at=<epoch>] [key=nm-<run>-review-rounds]: review round <n> of run <run> still has <k> findings file=<that file>` and stop.
+Re-decline only an auto-fix finding your lead's recorded decision already declined, citing that decision; an ask-user finding always goes to your lead, even when it looks like a repeat.
+
 ## Trunk-based delivery
 
 - Branch from the default branch and target it; never an `epic/*`, `release/*` or other long-lived branch.
