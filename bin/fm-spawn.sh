@@ -116,19 +116,23 @@
 #   exact task only (docs/configuration.md "Runtime backend" owns when that flag
 #   is authorized). Without it, the script resolves FM_BACKEND, then
 #   config/backend, then runtime auto-detection from the runtime firstmate's
-#   environment: $TMUX, HERDR_ENV=1, TERM_PROGRAM=rex with REX_BLOCK, or cmux
-#   runtime signals (via
+#   environment: $TMUX, HERDR_ENV=1, TERM_PROGRAM=rex with REX_BLOCK, cmux
+#   runtime signals, or the Herdr app signals (via
 #   bin/fm-backend.sh's fm_backend_detect, with cmux fallback details in
-#   docs/cmux-backend.md),
+#   docs/cmux-backend.md and the app signals in docs/hc-backend.md),
 #   then tmux.
 #   Spawn-capable backends are the reference tmux adapter, verified herdr
 #   adapter, and experimental zellij, orca, cmux, paseo, rex, t3code, tern,
 #   and hc adapters. Orca owns both the task worktree and terminal, so ship/scout Orca
 #   spawns do not run treehouse get; cmux, paseo, rex, tern, and hc are session
 #   providers only, exactly like herdr/zellij, so they do. Auto-detected herdr
-#   and rex stay silent like tmux; auto-detected cmux prints a loud stderr
-#   notice; zellij, orca, paseo, t3code, tern, and hc are never auto-detected
-#   (the paseo, tern, and hc markers leak into every descendant process).
+#   and rex stay silent like tmux; auto-detected cmux and Herdr-app-driven hc
+#   print a loud stderr notice; zellij, orca, paseo, t3code, and tern are never
+#   auto-detected (the paseo and tern markers, like bare hc markers, leak into
+#   every descendant process). An app-detected hc also records its signal in
+#   meta's backend_detect= line.
+#   Herdr leases its slot durably (treehouse get --lease) and moves the pane's
+#   top-level shell into it, because a restart restores that shell's cwd.
 #   codex-app is not a known backend yet; docs/codex-app-backend.md owns that
 #   blocked backend contract. Default tmux spawns do not write backend= to meta;
 #   absent backend= means tmux. Orca, cmux, paseo, tern, and hc do not support
@@ -1267,6 +1271,7 @@ fi
 spawn_remote_secondmate() {
   local id=$1 remote host root home harness positional model effort backend out rc meta tmp
   local remote_backend remote_target remote_harness remote_herdr_session registry_lock remote_lock remote_generation
+  local remote_rex_session_id remote_rex_server remote_rex_ok
   local remote_traceparent remote_recorded_traceparent sm_primary_head sync_out sync_rc account_config
   local -a launch_args
   id=${POS[0]:-}
@@ -1344,19 +1349,6 @@ spawn_remote_secondmate() {
       [ -n "$effort" ] || effort=-
     fi
   fi
-  # A remote second mate always runs on Herdr: its server belongs to the host's
-  # own GUI login session, so the endpoint outlives every SSH connection that
-  # supervises it. bin/fm-remote-doctor.sh gates that host on the same
-  # requirement, and the remote home's config/backend never overrides it.
-  case "${BACKEND_ARG:--}" in
-  - | herdr) backend=herdr ;;
-  *)
-    fm_lock_release "$registry_lock" || true
-    fm_lock_release "$SPAWN_TASK_LOCK" || true
-    echo "error: a remote secondmate runs only on the herdr backend, not '$BACKEND_ARG'" >&2
-    return 1
-    ;;
-  esac
   case "$effort" in
   - | low | medium | high | xhigh | max | ultra) ;;
   *)
@@ -1384,12 +1376,34 @@ spawn_remote_secondmate() {
       return 1
     fi
   fi
+  # A remote second mate runs only on a backend whose session-provider server
+  # outlives every SSH connection that supervises it: herdr (its server belongs
+  # to the host's GUI login session) is the default; rex runs on the host's
+  # persistent personal rex server. Without an explicit selection a relaunch
+  # keeps the backend its record names, and a record written before rex
+  # existed names none, so it is herdr. bin/fm-remote-doctor.sh gates that host
+  # on the selected backend, and the remote home's config/backend never
+  # overrides the selection.
+  backend=${BACKEND_ARG:-}
+  if [ -z "$backend" ] && [ -f "$meta" ]; then
+    backend=$(fm_meta_get "$meta" remote_backend)
+  fi
+  case "${backend:--}" in
+  -) backend=herdr ;;
+  herdr | rex) ;;
+  *)
+    fm_lock_release "$registry_lock" || true
+    fm_lock_release "$SPAWN_TASK_LOCK" || true
+    echo "error: a remote secondmate runs only on the herdr or rex backend, not '$backend'" >&2
+    return 1
+    ;;
+  esac
   # Gate the host before anything is published or transferred, so a host that
-  # cannot hold a durable Herdr endpoint refuses here rather than half-way
+  # cannot hold a durable endpoint refuses here rather than half-way
   # through a launch. This is also the readiness gate every liveness relaunch
   # passes through, because recovery respawns through this same route.
   rc=0
-  fm_remote_readiness_ensure "$SCRIPT_DIR" "$id" || rc=$?
+  fm_remote_readiness_ensure "$SCRIPT_DIR" "$id" "$backend" || rc=$?
   if [ "$rc" -ne 0 ]; then
     fm_lock_release "$registry_lock" || true
     fm_lock_release "$SPAWN_TASK_LOCK" || true
@@ -1481,12 +1495,11 @@ spawn_remote_secondmate() {
   remote_backend=$(printf '%s\n' "$out" | sed -n 's/^backend=//p' | tail -1)
   remote_target=$(printf '%s\n' "$out" | sed -n 's/^target=//p' | tail -1)
   remote_harness=$(printf '%s\n' "$out" | sed -n 's/^harness=//p' | tail -1)
-  remote_herdr_session=$(printf '%s\n' "$out" | sed -n 's/^herdr_session=//p' | tail -1)
-  if [ "$remote_backend" != herdr ]; then
+  if [ "$remote_backend" != "$backend" ]; then
     fm_lock_release "$remote_lock" || true
     fm_lock_release "$registry_lock" || true
     fm_lock_release "$SPAWN_TASK_LOCK" || true
-    echo "error: remote launch returned backend '${remote_backend:-missing}', expected herdr; preserving the remote route for reconciliation" >&2
+    echo "error: remote launch returned backend '${remote_backend:-missing}', expected $backend; preserving the remote route for reconciliation" >&2
     return 1
   fi
   [ -n "$remote_target" ] && [ "$remote_harness" = "$harness" ] || {
@@ -1496,13 +1509,41 @@ spawn_remote_secondmate() {
     echo "error: remote launch returned malformed route metadata; preserving the remote route for reconciliation" >&2
     return 1
   }
-  if [ "$remote_herdr_session" != fm-remote ] || [ "${remote_target%%:*}" != "$remote_herdr_session" ]; then
-    fm_lock_release "$remote_lock" || true
-    fm_lock_release "$registry_lock" || true
-    fm_lock_release "$SPAWN_TASK_LOCK" || true
-    echo "error: remote launch returned Herdr session '${remote_herdr_session:-missing}', expected 'fm-remote'; preserving the remote route for reconciliation" >&2
-    return 1
-  fi
+  remote_herdr_session=
+  remote_rex_session_id=
+  remote_rex_server=
+  case "$remote_backend" in
+    herdr)
+      remote_herdr_session=$(printf '%s\n' "$out" | sed -n 's/^herdr_session=//p' | tail -1)
+      if [ "$remote_herdr_session" != fm-remote ] || [ "${remote_target%%:*}" != "$remote_herdr_session" ]; then
+        fm_lock_release "$remote_lock" || true
+        fm_lock_release "$registry_lock" || true
+        fm_lock_release "$SPAWN_TASK_LOCK" || true
+        echo "error: remote launch returned Herdr session '${remote_herdr_session:-missing}', expected 'fm-remote'; preserving the remote route for reconciliation" >&2
+        return 1
+      fi
+      ;;
+    rex)
+      remote_rex_session_id=$(printf '%s\n' "$out" | sed -n 's/^rex_session_id=//p' | tail -1)
+      remote_rex_server=$(printf '%s\n' "$out" | sed -n 's/^rex_server=//p' | tail -1)
+      # The route must pin a host-local unix:// server and a
+      # <session-uuid>:<block-uuid> target whose session half is the reported
+      # session id; anything else is not an endpoint this contract launched.
+      remote_rex_ok=1
+      case "$remote_rex_server" in unix://*) ;; *) remote_rex_ok=0 ;; esac
+      case "$remote_rex_session_id" in session:?*) ;; *) remote_rex_ok=0 ;; esac
+      case "$remote_target" in "${remote_rex_session_id#session:}":?*) ;; *) remote_rex_ok=0 ;; esac
+      case "${remote_target%%:*}" in '' | *[!0-9a-f-]*) remote_rex_ok=0 ;; esac
+      case "${remote_target#*:}" in '' | *:* | *[!0-9a-f-]*) remote_rex_ok=0 ;; esac
+      if [ "$remote_rex_ok" -ne 1 ]; then
+        fm_lock_release "$remote_lock" || true
+        fm_lock_release "$registry_lock" || true
+        fm_lock_release "$SPAWN_TASK_LOCK" || true
+        echo "error: remote launch returned malformed Rex route metadata (session '${remote_rex_session_id:-missing}', server '${remote_rex_server:-missing}', target '${remote_target:-missing}'); preserving the remote route for reconciliation" >&2
+        return 1
+      fi
+      ;;
+  esac
   # Record what the remote endpoint ACTUALLY carries, read back from its own
   # launch, rather than what this side hoped to deliver. That keeps the #995
   # guarantee that the recorded carrier is the identity the child received even
@@ -1529,7 +1570,13 @@ spawn_remote_secondmate() {
     echo "remote_host=$host"
     echo "remote_root=$root"
     echo "remote_backend=$remote_backend"
-    echo "remote_herdr_session=$remote_herdr_session"
+    case "$remote_backend" in
+      herdr) echo "remote_herdr_session=$remote_herdr_session" ;;
+      rex)
+        echo "remote_rex_session_id=$remote_rex_session_id"
+        echo "remote_rex_server=$remote_rex_server"
+        ;;
+    esac
     echo "remote_target=$remote_target"
     [ -z "$remote_recorded_traceparent" ] || echo "traceparent=$remote_recorded_traceparent"
   } >"$tmp"
@@ -1573,6 +1620,7 @@ T3CODE_CREATE_UNCERTAIN=0
 T3CODE_LAUNCH_UNCONFIRMED=0
 T3CODE_PROJECT_ID=
 T3CODE_MODEL_SELECTION=
+HERDR_LEASED=0
 HERDR_PROJECTION_ABORT_CLEANUP=0
 HERDR_PROJECTION_ABORT_SESSION=
 HERDR_PROJECTION_ABORT_TASK_PANE=
@@ -1685,10 +1733,12 @@ spawn_abort_cleanup() {
   fi
   if [ "$HERDR_PROJECTION_ABORT_CLEANUP" = 1 ]; then
     HERDR_PROJECTION_ABORT_CLEANUP=0
-    fm_backend_herdr_projection_cleanup_exact \
+    if fm_backend_herdr_projection_cleanup_exact \
       "$HERDR_PROJECTION_ABORT_SESSION" \
       "$HERDR_PROJECTION_ABORT_TASK_PANE" \
-      "$HERDR_PROJECTION_ABORT_SEEDED_PANE" || true
+      "$HERDR_PROJECTION_ABORT_SEEDED_PANE"; then
+      SPAWN_ENDPOINT_CLOSED=1
+    fi
   fi
   if [ "$HERDR_PRESENTATION_ORDER_LOCK_HELD" = 1 ]; then
     HERDR_PRESENTATION_ORDER_LOCK_HELD=0
@@ -1847,6 +1897,25 @@ spawn_abort_cleanup() {
       else
         echo "warning: another spawn of $ID holds its spawn lock; leaving its $HARNESS wiring, temp root, and staged launch file in place" >&2
       fi
+    fi
+  fi
+  # A durable Herdr lease outlives the pane, unlike the process lease the
+  # interactive command used to take, so an abort that leaves no record returns
+  # it, whether or not the launch was sent. Only a pane Herdr reports gone and a
+  # copy with no uncommitted work prove nothing is left to inspect there; any
+  # other keeps the lease and names the command, as the pane used to hold the
+  # slot for the operator.
+  if [ "$HERDR_LEASED" = 1 ] && [ "$status" -ne 0 ] && [ -n "${WT:-}" ] &&
+    [ ! -e "$STATE/$ID.meta" ] && [ ! -L "$STATE/$ID.meta" ]; then
+    HERDR_LEASED=0
+    local herdr_slot_status
+    if [ "$SPAWN_ENDPOINT_CLOSED" = 1 ] && fm_backend_herdr_endpoint_confirmed_gone "${T:-}" &&
+      herdr_slot_status=$(git -C "$WT" status --porcelain --untracked-files=all 2>/dev/null) &&
+      [ -z "$herdr_slot_status" ] &&
+      (cd "$PROJ_ABS" && treehouse return --force "$WT") >/dev/null 2>&1; then
+      :
+    else
+      echo "warning: the worktree $WT stays leased to $ID after the failed spawn; once inspected, run 'treehouse return --force $WT' from $PROJ_ABS" >&2
     fi
   fi
   # A spawn that aborts after claiming its slot but before its record survives
@@ -2231,8 +2300,12 @@ fi
 if [ "$RELAUNCH" -eq 0 ]; then
   if [ "$BACKEND_SET" -eq 1 ]; then
     BACKEND=$BACKEND_ARG
+    FM_BACKEND_DETECT_SIGNAL=""
   else
-    BACKEND=$(fm_backend_name)
+    # Called directly so the one detection that chose BACKEND also leaves
+    # FM_BACKEND_DETECT_SIGNAL for the meta's backend_detect= line below.
+    fm_backend_resolve
+    BACKEND=$FM_BACKEND_RESOLVED
   fi
   fm_backend_validate_spawn "$BACKEND" || exit 1
   fm_backend_source "$BACKEND" || exit 1
@@ -5254,6 +5327,24 @@ spawn_send_key() { # <target> <key>
   esac
 }
 
+# Lease the task copy durably instead of typing the interactive `treehouse get`
+# into the pane. That command runs a subshell, so the later `cd` lands inside
+# it and the pane's top-level shell stays in the project; Herdr restores a pane
+# from that top-level shell's cwd, so a host restart reopened every worker in
+# the primary clone. A durable lease needs no subshell, which lets the cd in
+# spawn_enter_recorded_worktree move the top-level shell itself. A lease
+# outlives its pane, so an aborted spawn returns it (spawn_abort_cleanup) and
+# bin/fm-teardown.sh returns it for a finished task.
+spawn_lease_herdr_slot() {
+  WT=$(cd "$PROJ_ABS" && treehouse get --lease --lease-holder "$ID") || {
+    echo "error: treehouse get --lease failed to lease a worktree for $ID from $PROJ_ABS; $(spawn_endpoint_hint)" >&2
+    exit 1
+  }
+  [ -n "$WT" ] || { echo "error: treehouse get --lease did not report a worktree for $ID" >&2; exit 1; }
+  HERDR_LEASED=1
+  validate_spawn_worktree "treehouse get --lease" "$WT (leased to $ID; once inspected, release it with 'treehouse return --force $WT' from $PROJ_ABS)"
+}
+
 # Enter the exact copy recorded for this task immediately before trust setup and
 # launch. Herdr restores a pane's shell cwd from its durable tab layout, so a
 # treehouse subshell's foreground cwd is not enough to keep a later pane restart
@@ -5674,8 +5765,8 @@ EOF
 }
 
 # Rewrite <meta> into <out> without the <owned keys>, placing <line>... ahead
-# of the first pr= line so the PR region stays the record's tail that
-# fm_pr_metadata_identity_parse requires.
+# of the first pr= line so no key fm_pr_metadata_identity_parse refuses lands
+# after the PR region.
 spawn_meta_rewrite_before_pr() {  # <meta> <out> <owned keys> <line>...
   local meta=$1 out=$2 keys=$3
   shift 3
@@ -5774,7 +5865,11 @@ elif [ "$RELAUNCH" -eq 1 ]; then
   [ "$KIND" = secondmate ] || validate_spawn_worktree "relaunch" "$T"
 elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
   # A t3code slot was leased and validated in its target branch above.
-  if [ "$BACKEND" != t3code ]; then
+  if [ "$BACKEND" = t3code ]; then
+    :
+  elif [ "$BACKEND" = herdr ]; then
+    spawn_lease_herdr_slot
+  else
     spawn_send_text_line "$WT_TARGET" 'treehouse get'
 
     # Wait for the treehouse subshell: the pane's cwd moves from the project to the worktree.
@@ -5841,12 +5936,12 @@ elif [ "$KIND" != secondmate ] && [ "$BACKEND" != orca ]; then
     fi
   fi
 
-  # Claim the pool slot for this task. The interactive `treehouse get` sent to
-  # the pane above records only a process lease (Treehouse's durable
-  # `get --lease --lease-holder`, which bin/fm-home-seed.sh uses for secondmate
-  # homes, is not this path), so Treehouse cannot say which task a slot belongs
-  # to once that task's worker exits - and that is exactly when the slot is
-  # handed on and this task's worktree= line goes stale. The claim is what lets
+  # Claim the pool slot for this task. Except on Herdr, whose slot
+  # spawn_lease_herdr_slot leased durably, the interactive `treehouse get` sent
+  # to the pane above records only a process lease, so Treehouse cannot say
+  # which task a slot belongs to once that task's worker exits - and that is
+  # exactly when the slot is handed on and this task's worktree= line goes
+  # stale. The claim is what lets
   # bin/fm-teardown.sh leave a slot that has since been reassigned untouched, so
   # a slot that cannot be claimed is refused here, at the cheapest point, rather
   # than launching a worker whose slot teardown could later release out from
@@ -7019,6 +7114,12 @@ preserve_relaunch_meta() {
   # default path's meta stays byte-identical (absent backend= means tmux;
   # data/fm-backend-design-d7's P1 compatibility contract).
   [ "$BACKEND" = tmux ] || echo "backend=$BACKEND"
+  # backend_detect= records which Herdr app signal auto-selected hc, so the
+  # task record carries the reason, not just the result. Every other
+  # selection (explicit, default, or another detected backend) writes none.
+  case "$BACKEND:${FM_BACKEND_DETECT_SIGNAL:-}" in
+    hc:app-terminal) echo "backend_detect=$FM_BACKEND_DETECT_SIGNAL" ;;
+  esac
   if [ "$BACKEND" = herdr ]; then
     echo "herdr_session=$HERDR_SES"
     echo "herdr_workspace_id=$HERDR_WORKSPACE_ID"
@@ -7068,8 +7169,8 @@ preserve_relaunch_meta() {
   if [ "$SPAWN_CONTROL_PARENT" = 1 ] && [ -n "${FM_CONTROL_RELAUNCH_TX:-}" ]; then
     echo "control_relaunch_tx=$FM_CONTROL_RELAUNCH_TX"
   fi
-  # Preserved lines go last so an armed pr= identity block stays last, as
-  # fm_pr_metadata_identity_parse (bin/fm-pr-lib.sh) requires.
+  # Preserved lines go last so nothing fm_pr_metadata_identity_parse
+  # (bin/fm-pr-lib.sh) refuses is written after an armed pr= identity region.
   if [ "$RELAUNCH" -eq 1 ]; then
     preserve_relaunch_meta
   fi
